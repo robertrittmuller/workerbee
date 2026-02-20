@@ -579,6 +579,145 @@ sequenceDiagram
 | **Module Installation** | Allowed from PyPI only, cached locally |
 | **Code Validation** | AST analysis before execution |
 
+### 5.4 LangGraph Agent Framework
+
+WorkerBee uses LangGraph as the agent orchestration framework. LangGraph provides stateful, cyclic agent workflows with built-in persistence and human-in-the-loop capabilities.
+
+#### Architecture Overview
+
+```mermaid
+flowchart TB
+    subgraph LangGraph [LangGraph Agent Runtime]
+        subgraph Graph [Agent Graph]
+            INPUT[Input Node]
+            PLAN[Planning Node]
+            EXEC[Execution Node]
+            CODE[Code Generation Node]
+            REVIEW[Review Node]
+            OUTPUT[Output Node]
+        end
+        
+        STATE[Agent State]
+        MEMORY[Checkpointer]
+        TOOLS[Tool Registry]
+    end
+    
+    subgraph External [External Services]
+        LLM[LLM via liteLLM]
+        SANDBOX[Python Sandbox]
+        MINIO[MinIO Storage]
+    end
+    
+    INPUT --> PLAN
+    PLAN --> EXEC
+    EXEC --> CODE
+    CODE --> SANDBOX
+    SANDBOX --> REVIEW
+    REVIEW --> |needs revision| PLAN
+    REVIEW --> |complete| OUTPUT
+    
+    STATE --> Graph
+    MEMORY --> STATE
+    TOOLS --> EXEC
+    
+    PLAN --> LLM
+    CODE --> LLM
+    REVIEW --> LLM
+    
+    EXEC --> MINIO
+    OUTPUT --> MINIO
+```
+
+#### LangGraph Node Types
+
+| Node | Purpose | Actions |
+|------|---------|---------|
+| **Input Node** | Receive and validate input files | Load files from MinIO, parse content, update state |
+| **Planning Node** | Analyze task and create execution plan | Call LLM to generate step-by-step plan |
+| **Execution Node** | Execute planned steps | Invoke tools, manage file operations |
+| **Code Generation Node** | Generate Python code | Call LLM to write code, validate syntax |
+| **Review Node** | Evaluate results | Check output quality, decide on revisions |
+| **Output Node** | Generate final artifacts | Create output files, store in MinIO |
+
+#### Agent State Schema
+
+```python
+from typing import TypedDict, List, Optional
+from langgraph.graph import StateGraph
+
+class AgentState(TypedDict):
+    # Task information
+    task_id: str
+    task_prompt: str
+    
+    # Input files
+    input_files: List[dict]
+    parsed_content: dict
+    
+    # Execution state
+    current_step: str
+    execution_plan: List[str]
+    completed_steps: List[str]
+    
+    # Code execution
+    generated_code: Optional[str]
+    code_output: Optional[str]
+    execution_errors: List[str]
+    
+    # Output
+    output_artifacts: List[dict]
+    
+    # Control flow
+    revision_count: int
+    max_revisions: int
+    needs_revision: bool
+    is_complete: bool
+    
+    # Metadata
+    started_at: str
+    updated_at: str
+```
+
+#### Key LangGraph Features Used
+
+1. **Stateful Execution**: Agent maintains state across all nodes, enabling complex multi-step workflows
+2. **Cyclic Graphs**: Review node can route back to Planning node for iterative refinement
+3. **Checkpointing**: State persistence allows pausing/resuming executions and recovery from failures
+4. **Human-in-the-loop**: Optional approval steps before code execution or final output
+5. **Streaming**: Real-time state updates streamed to frontend via SSE
+
+#### Tool Integration
+
+```python
+from langgraph.prebuilt import ToolNode
+
+# Tools available to agents
+tools = [
+    # File operations
+    read_file,
+    write_file,
+    list_files,
+    
+    # Code execution
+    execute_python,
+    install_package,
+    
+    # Data processing
+    parse_pdf,
+    parse_excel,
+    parse_csv,
+    parse_image,
+    
+    # Output generation
+    create_word_doc,
+    create_excel,
+    create_csv,
+    create_pdf,
+]
+
+tool_node = ToolNode(tools)
+```
+
 ---
 
 ## 6. Frontend Component Structure
@@ -906,10 +1045,13 @@ helm/workerbee/
 
 ### Phase 3: Agent System
 - [ ] Agent configuration and management
+- [ ] LangGraph agent graph implementation
+- [ ] Agent state schema and checkpointing
 - [ ] liteLLM integration
 - [ ] Sandbox container setup
 - [ ] Code execution engine
 - [ ] Dynamic module installation
+- [ ] Tool registry implementation
 
 ### Phase 4: Execution Engine
 - [ ] Task management system
@@ -940,6 +1082,7 @@ helm/workerbee/
 | **State Management** | Zustand + TanStack Query | Client state |
 | **Styling** | TailwindCSS + shadcn/ui | UI components |
 | **Backend** | FastAPI + Python 3.11 | API framework |
+| **Agent Framework** | LangGraph | Stateful agent orchestration |
 | **LLM Gateway** | liteLLM | Multi-provider LLM access |
 | **Database** | PostgreSQL 16 | Primary data store |
 | **Object Storage** | MinIO | File and artifact storage |
