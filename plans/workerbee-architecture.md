@@ -23,19 +23,19 @@ WorkerBee is a visual agent platform that enables non-technical users to accompl
 ```mermaid
 flowchart TB
     subgraph Client [Frontend - React]
-        UI[User Interface]
-        RF[ReactFlow Canvas]
-        FM[File Manager]
-        WM[Workflow Manager]
+        UI[User_Interface]
+        RF[ReactFlow_Canvas]
+        FM[File_Manager]
+        WM[Workflow_Manager]
     end
     
     subgraph API [Backend - FastAPI]
-        GW[API Gateway]
-        Auth[Auth Service]
-        WF[Workflow Service]
-        AG[Agent Service]
-        FILE[File Service]
-        EXEC[Execution Engine]
+        GW[API_Gateway]
+        Auth[Auth_Service]
+        WF[Workflow_Service]
+        AG[Agent_Service]
+        FILE[File_Service]
+        EXEC[Execution_Engine]
     end
     
     subgraph Storage [Data Layer]
@@ -44,14 +44,14 @@ flowchart TB
     end
     
     subgraph Compute [Execution Layer]
-        SANDBOX[Python Sandbox]
-        LLM[liteLLM Gateway]
+        SANDBOX[Python_Sandbox]
+        LLM[liteLLM_Gateway]
     end
     
     subgraph External [External LLMs]
         OPENAI[OpenAI]
         ANTHROPIC[Anthropic]
-        LOCAL[Local Models]
+        LOCAL[Local_Models]
     end
     
     UI --> RF
@@ -86,35 +86,35 @@ flowchart TB
 ```mermaid
 flowchart LR
     subgraph App [React Application]
-        Router[React Router]
+        Router[React_Router]
         
         subgraph Pages [Page Components]
             Dashboard[Dashboard]
-            WorkflowEditor[Workflow Editor]
-            AgentManager[Agent Manager]
-            TaskLibrary[Task Library]
+            WorkflowEditor[Workflow_Editor]
+            AgentManager[Agent_Manager]
+            TaskLibrary[Task_Library]
             Settings[Settings]
-            Auth[Auth Pages]
+            Auth[Auth_Pages]
         end
         
         subgraph Components [Core Components]
-            Canvas[ReactFlow Canvas]
-            NodePalette[Node Palette]
-            PropertyPanel[Property Panel]
-            FileUploader[File Uploader]
-            AgentViewer[Agent Activity Viewer]
-            OutputViewer[Output Viewer]
+            Canvas[ReactFlow_Canvas]
+            NodePalette[Node_Palette]
+            PropertyPanel[Property_Panel]
+            FileUploader[File_Uploader]
+            AgentViewer[Agent_Activity_Viewer]
+            OutputViewer[Output_Viewer]
         end
         
         subgraph State [State Management]
-            ZS[Zustand Store]
-            ReactQuery[TanStack Query]
+            ZS[Zustand_Store]
+            ReactQuery[TanStack_Query]
         end
         
         subgraph Nodes [ReactFlow Nodes]
-            InputNode[Input Node]
-            AgentNode[Agent Node]
-            OutputNode[Output Node]
+            InputNode[Input_Node]
+            AgentNode[Agent_Node]
+            OutputNode[Output_Node]
         end
     end
     
@@ -473,9 +473,9 @@ GET    /api/v1/executions/{id}/stream - SSE stream for agent activity
 ```mermaid
 flowchart TB
     subgraph Execution [Execution Request]
-        REQ[Execution Request]
-        VALIDATE[Validate Request]
-        PREPARE[Prepare Environment]
+        REQ[Execution_Request]
+        VALIDATE[Validate_Request]
+        PREPARE[Prepare_Environment]
     end
     
     subgraph Sandbox [Python Sandbox Container]
@@ -487,24 +487,24 @@ flowchart TB
         end
         
         subgraph Runtime [Python Runtime]
-            PY[Python 3.11]
+            PY[Python_3.11]
             PIP[pip]
-            VENV[Virtual Environment]
+            VENV[Virtual_Environment]
         end
         
         subgraph Security [Security Layer]
-            SECCOMP[seccomp filter]
-            RLIMIT[Resource Limits]
-            NETWORK[Network Policy]
-            TIMEOUT[Execution Timeout]
+            SECCOMP[seccomp_filter]
+            RLIMIT[Resource_Limits]
+            NETWORK[Network_Policy]
+            TIMEOUT[Execution_Timeout]
         end
     end
     
     subgraph Agent [Agent Process]
-        LLM[LLM Integration]
-        CODEGEN[Code Generator]
-        EXEC[Code Executor]
-        FILEOPS[File Operations]
+        LLM[LLM_Integration]
+        CODEGEN[Code_Generator]
+        EXEC[Code_Executor]
+        FILEOPS[File_Operations]
     end
     
     REQ --> VALIDATE
@@ -775,34 +775,34 @@ services:
 ```mermaid
 flowchart TB
     subgraph Ingress [Ingress Layer]
-        ING[NGINX Ingress]
-        CERT[Cert Manager]
+        ING[NGINX_Ingress]
+        CERT[Cert_Manager]
     end
     
     subgraph Frontend [Frontend Pods]
-        FE1[Frontend Pod 1]
-        FE2[Frontend Pod 2]
+        FE1[Frontend_Pod_1]
+        FE2[Frontend_Pod_2]
     end
     
     subgraph Backend [Backend Pods]
-        BE1[Backend Pod 1]
-        BE2[Backend Pod 2]
+        BE1[Backend_Pod_1]
+        BE2[Backend_Pod_2]
     end
     
     subgraph Sandbox [Sandbox Pool]
-        SB1[Sandbox Pod 1]
-        SB2[Sandbox Pod 2]
-        SB3[Sandbox Pod 3]
+        SB1[Sandbox_Pod_1]
+        SB2[Sandbox_Pod_2]
+        SB3[Sandbox_Pod_3]
     end
     
     subgraph Data [Data Layer]
-        PG[PostgreSQL HA]
-        MINIO[MinIO Cluster]
+        PG[PostgreSQL_HA]
+        MINIO[MinIO_Cluster]
     end
     
     subgraph Queue [Job Queue]
         REDIS[Redis]
-        WORKER[Execution Workers]
+        WORKER[Execution_Workers]
     end
     
     ING --> Frontend
@@ -952,21 +952,20 @@ helm/workerbee/
 
 ---
 
-## 13. Open Questions
+## 13. Design Decisions
 
-1. **LLM Provider Priority**: Should we support local models (Ollama) from day one, or focus on cloud providers first?
+The following design decisions have been made for the initial version:
 
-2. **Sandbox Scaling**: For high-volume usage, should we use a sandbox pool or create sandboxes on-demand?
-
-3. **File Size Limits**: What should be the maximum file size for uploads? (Proposed: 100MB default, configurable)
-
-4. **Execution Concurrency**: How many concurrent executions per user? (Proposed: 3 default, configurable per tier)
-
-5. **Module Whitelist**: Should we maintain a whitelist of allowed Python modules, or allow all PyPI packages?
-
-6. **Collaboration Features**: Should workflows be shareable between users in the same organization?
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **LLM Provider Priority** | Cloud providers first | Focus on OpenAI and Anthropic initially; local models (Ollama) to be added in a future release |
+| **File Size Limits** | 100MB default | Configurable per deployment; balances usability with storage constraints |
+| **Execution Concurrency** | 3 per user | Prevents resource exhaustion; configurable for different user tiers |
+| **Python Modules** | Allow all PyPI packages | Maximum flexibility for agents; security managed through sandbox isolation |
+| **Collaboration Features** | Not in v1 | Single-user workflows; organization sharing to be considered for future releases |
+| **Sandbox Scaling** | On-demand creation | Simpler initial implementation; pool-based scaling for future optimization |
 
 ---
 
-*Document Version: 1.0*
+*Document Version: 1.1*
 *Last Updated: 2026-02-20*
