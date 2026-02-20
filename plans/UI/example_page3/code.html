@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Node Configuration - Ceramic Future Workflows</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "ceramic": "#EBE8E3",
+                        "plastic": "#FDFCF9",
+                        "espresso": "#3E3430",
+                        "tungsten": "#8C8682",
+                        "amber": "#DDAA44",
+                        "signal-green": "#6B9E78",
+                        "signal-red": "#CC5544",
+                        "tinted-paper": "#F2F0EB",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["IBM Plex Sans", "sans-serif"],
+                        "mono": ["IBM Plex Mono", "monospace"],
+                    },
+                    borderRadius: {
+                        "sm": "8px",
+                        "md": "12px",
+                        "lg": "16px",
+                        "xl": "24px",
+                    },
+                    boxShadow: {
+                        "lift": "0 8px 24px -4px rgba(62, 52, 48, 0.12), 0 4px 8px -2px rgba(62, 52, 48, 0.08)",
+                        "deep": "0 20px 40px -8px rgba(62, 52, 48, 0.15)",
+                        "inset": "inset 0 2px 4px rgba(62, 52, 48, 0.05)",
+                        "skeuomorphic": "inset 0 1px 0 rgba(255,255,255,0.8), 0 1px 2px rgba(62,52,48,0.1)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom Styles for Specific Controls to match the "Physical" feel */
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            background: #DDAA44;
+            border: 2px solid #FDFCF9;
+            border-radius: 4px; /* Square handle with slight rounding */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            cursor: pointer;
+            margin-top: -10px; /* Aligns thumb to track */
+        }
+
+        .range-slider::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: #D6D1CC;
+            border-radius: 2px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* Scrollbar for the textarea */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #F2F0EB;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #D6D1CC;
+            border-radius: 4px;
+            border: 2px solid #F2F0EB;
+        }
+    </style>
+</head>
+<body class="bg-ceramic text-espresso font-body antialiased min-h-screen overflow-hidden relative">
+<!-- Background Grid Pattern -->
+<div class="absolute inset-0 z-0 opacity-40 pointer-events-none" style="background-image: radial-gradient(#D6D1CC 1px, transparent 1px); background-size: 40px 40px;">
+</div>
+<!-- Dummy Canvas Content to show context -->
+<div class="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 z-0 opacity-50 blur-[2px]">
+<div class="w-[280px] bg-plastic border border-ceramic rounded-lg shadow-lift p-4 flex flex-col gap-4">
+<div class="flex justify-between items-center border-b border-ceramic pb-3">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-ceramic flex items-center justify-center border border-tungsten/20">
+<span class="material-symbols-outlined text-tungsten text-[18px]">search</span>
+</div>
+<span class="font-display font-bold text-sm text-espresso">SEARCH_AGENT</span>
+</div>
+<div class="w-2 h-2 rounded-full bg-amber shadow-[0_0_8px_#DDAA44]"></div>
+</div>
+<div class="h-24 bg-ceramic/50 rounded-sm border border-dashed border-tungsten/30"></div>
+</div>
+</div>
+<!-- Connecting Wire (Visual Context) -->
+<svg class="absolute top-0 left-0 w-full h-full z-0 pointer-events-none opacity-50 blur-[1px]">
+<path d="M 450 400 C 600 400, 700 300, 800 350" fill="none" stroke="#DDAA44" stroke-dasharray="8 4" stroke-width="2"></path>
+</svg>
+<!-- THE COMPONENT: Node Configuration (The Inspector) -->
+<main class="fixed right-6 top-6 bottom-6 flex flex-col justify-center z-50 pointer-events-none">
+<!-- Floating Panel Container -->
+<div class="w-[400px] h-auto max-h-[calc(100vh-48px)] bg-plastic rounded-xl shadow-deep border border-white/50 pointer-events-auto flex flex-col relative overflow-hidden backdrop-blur-sm">
+<!-- Top Bar / Header -->
+<div class="flex items-center justify-between px-6 py-5 bg-plastic border-b border-tungsten/10 z-10 sticky top-0">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-ceramic shadow-inner flex items-center justify-center border border-tungsten/10">
+<span class="material-symbols-outlined text-amber">manage_search</span>
+</div>
+<div class="flex flex-col">
+<h2 class="font-display font-bold text-lg leading-tight tracking-tight text-espresso uppercase">Search_Agent_01</h2>
+<span class="font-mono text-xs text-tungsten tracking-wide">v4.2.0 • ID: #8F2A</span>
+</div>
+</div>
+<button class="w-8 h-8 rounded-md hover:bg-ceramic text-tungsten hover:text-espresso flex items-center justify-center transition-colors duration-200">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Scrollable Content Area -->
+<div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8 bg-plastic">
+<!-- Model Selector (Mechanical Toggle Style) -->
+<div class="space-y-3">
+<label class="flex items-center justify-between text-xs font-bold text-tungsten uppercase tracking-widest font-display">
+<span>Foundation Model</span>
+<span class="material-symbols-outlined text-[16px]">psychology</span>
+</label>
+<div class="relative group">
+<!-- Custom Select Styled as Mechanical Button -->
+<div class="w-full bg-ceramic rounded-md border border-tungsten/20 shadow-inset px-4 py-3 flex items-center justify-between cursor-pointer hover:border-amber/50 transition-colors">
+<div class="flex items-center gap-3">
+<span class="w-2 h-2 rounded-full bg-signal-green shadow-[0_0_6px_#6B9E78]"></span>
+<span class="font-display font-medium text-espresso text-base">GPT-4-Turbo-Preview</span>
+</div>
+<span class="material-symbols-outlined text-tungsten group-hover:text-espresso">unfold_more</span>
+</div>
+<!-- Physical "Plate" below input for depth -->
+<div class="absolute -bottom-[2px] left-[2px] right-[2px] h-[2px] bg-tungsten/10 rounded-b-md -z-10"></div>
+</div>
+<p class="text-xs text-tungsten font-mono leading-relaxed pl-1">
+                        High-reasoning model optimized for complex query decomposition.
+                    </p>
+</div>
+<!-- Temperature Slider (Rectilinear Fader) -->
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<label class="text-xs font-bold text-tungsten uppercase tracking-widest font-display">Temperature</label>
+<span class="font-mono text-amber text-sm bg-amber/10 px-2 py-0.5 rounded border border-amber/20">0.72</span>
+</div>
+<div class="relative h-12 flex items-center px-2 bg-ceramic rounded-lg border border-tungsten/10 shadow-inset">
+<!-- Track markers -->
+<div class="absolute left-3 right-3 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none">
+<div class="w-[1px] h-2 bg-tungsten/30"></div>
+<div class="w-[1px] h-2 bg-tungsten/30"></div>
+<div class="w-[1px] h-2 bg-tungsten/30"></div>
+<div class="w-[1px] h-2 bg-tungsten/30"></div>
+<div class="w-[1px] h-2 bg-tungsten/30"></div>
+</div>
+<!-- The Slider Input -->
+<input class="range-slider w-full bg-transparent appearance-none focus:outline-none z-10 relative" max="100" min="0" type="range" value="72"/>
+</div>
+<div class="flex justify-between px-1 text-[10px] font-mono text-tungsten uppercase">
+<span>Precise</span>
+<span>Balanced</span>
+<span>Creative</span>
+</div>
+</div>
+<!-- Parameters Grid -->
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<label class="text-xs font-bold text-tungsten uppercase tracking-widest font-display">Max Tokens</label>
+<div class="flex items-center bg-ceramic rounded-md border border-tungsten/20 shadow-inset px-3 py-2">
+<span class="font-mono text-sm text-espresso">4096</span>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-tungsten uppercase tracking-widest font-display">Top P</label>
+<div class="flex items-center bg-ceramic rounded-md border border-tungsten/20 shadow-inset px-3 py-2">
+<span class="font-mono text-sm text-espresso">1.0</span>
+</div>
+</div>
+</div>
+<!-- System Prompt (Tinted Paper Look) -->
+<div class="space-y-3 flex-1 flex flex-col min-h-[200px]">
+<div class="flex items-center justify-between">
+<label class="text-xs font-bold text-tungsten uppercase tracking-widest font-display flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]">terminal</span>
+                            System Prompt
+                        </label>
+<button class="text-[10px] font-bold text-amber hover:text-espresso uppercase tracking-wider transition-colors">
+                            Expand View
+                        </button>
+</div>
+<div class="relative flex-1 group">
+<!-- Paper Effect Container -->
+<textarea class="w-full h-full min-h-[240px] bg-tinted-paper rounded-md border-0 text-sm font-mono text-espresso leading-relaxed resize-none focus:ring-2 focus:ring-amber/50 focus:ring-offset-0 p-4 shadow-inset custom-scrollbar selection:bg-amber/30" spellcheck="false">You are an expert research analyst specializing in architectural history and industrial design.
+
+Your goal is to find accurate, highly specific information about the requested topic.
+
+## Constraints
+- Prioritize primary sources from 1960-1990.
+- Output strictly in JSON format.
+- If data is ambiguous, flag with "confidence_score".
+
+## Context
+User is exploring "Cassette Futurism" aesthetics.</textarea>
+<!-- Visual "Code" decoration on the side -->
+<div class="absolute top-4 right-4 text-tungsten/30 select-none pointer-events-none">
+<span class="material-symbols-outlined text-[16px]">code</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer / Action Area -->
+<div class="p-6 bg-plastic border-t border-tungsten/10 z-10 relative">
+<!-- Physical shadow for the button -->
+<div class="absolute bottom-4 left-6 right-6 h-12 bg-espresso/20 rounded-lg blur-md translate-y-1"></div>
+<button class="relative w-full bg-espresso hover:bg-[#2C2420] text-plastic font-display font-bold text-sm tracking-widest uppercase py-4 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] active:transform active:translate-y-[1px] active:shadow-none transition-all flex items-center justify-center gap-2 group">
+<span>Update Module</span>
+<span class="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+</div>
+</main>
+</body></html>

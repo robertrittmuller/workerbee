@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ceramic Future Workflows - Canvas Main</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "ceramic": "#EBE8E3",
+                        "plastic": "#FDFCF9",
+                        "espresso": "#3E3430",
+                        "tungsten": "#8C8682",
+                        "amber": "#e4ad3f", // Using primary from prompt instructions, but matching design intent
+                        "amber-dark": "#DDAA44", // Deeper amber for interactions
+                        "signal-green": "#6B9E78",
+                        "signal-red": "#CC5544",
+                        "primary": "#e4ad3f",
+                        "background-light": "#EBE8E3", // Replacing default light with ceramic
+                        "background-dark": "#211c11",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["IBM Plex Sans", "sans-serif"],
+                        "mono": ["IBM Plex Mono", "monospace"],
+                    },
+                    boxShadow: {
+                        "lift": "0 8px 24px -4px rgba(62, 52, 48, 0.12), 0 2px 6px -1px rgba(62, 52, 48, 0.04)",
+                        "deep": "0 20px 40px -8px rgba(62, 52, 48, 0.2)",
+                        "inner-sm": "inset 0 1px 2px rgba(62, 52, 48, 0.06)",
+                        "pressed": "inset 0 2px 4px rgba(0,0,0,0.1)",
+                    },
+                    backgroundImage: {
+                        "dot-grid": "radial-gradient(#8C8682 1px, transparent 1px)",
+                    },
+                    animation: {
+                        "dash": "dash 1s linear infinite",
+                    },
+                    keyframes: {
+                        dash: {
+                            "0%": { strokeDashoffset: "24" },
+                            "100%": { strokeDashoffset: "0" },
+                        }
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom Scrollbar for a more industrial look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #EBE8E3; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #D6D1CC; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #8C8682; 
+        }
+
+        /* Hide scrollbar for clean canvas */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .pneumatic-active:active {
+            transform: scale(0.95);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Bezier Curve styles */
+        .connection-line {
+            fill: none;
+            stroke-width: 3;
+            stroke-linecap: round;
+        }
+        
+        .connection-line-active {
+            stroke: #e4ad3f;
+            stroke-dasharray: 6 6;
+            animation: dash 1s linear infinite;
+        }
+
+        .connection-line-inactive {
+            stroke: #C0BBB6;
+        }
+    </style>
+</head>
+<body class="bg-ceramic text-espresso font-body h-screen w-screen overflow-hidden selection:bg-primary/20">
+<!-- Top Navigation (Context) -->
+<nav class="absolute top-0 left-0 w-full h-16 bg-plastic/80 backdrop-blur-sm border-b border-[#D6D1CC] flex items-center justify-between px-6 z-50 shadow-sm">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 bg-espresso rounded-md flex items-center justify-center text-ceramic">
+<span class="material-symbols-outlined text-xl">grid_view</span>
+</div>
+<h1 class="font-display font-bold text-lg tracking-tight text-espresso">Ceramic <span class="text-tungsten font-normal">Future Workflows</span></h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-ceramic rounded-full border border-[#D6D1CC]">
+<div class="w-2 h-2 rounded-full bg-signal-green animate-pulse"></div>
+<span class="text-xs font-mono font-medium text-tungsten uppercase tracking-wider">System Ready</span>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-ceramic transition-colors text-tungsten hover:text-espresso">
+<span class="material-symbols-outlined">help</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-cover bg-center border border-[#D6D1CC]" data-alt="User profile picture showing a smiling man" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAbypJzOe0S7vXYnxt3PveXVOLuRNygxxsPIKSrLgCRsDrln9pmZNAA1MU5SxLzu5j4yZ7LrV4vGbsTofSOZadx4oygL90UVpRNMsyjn7u6MlgakmnsCBek8FzbjUN9GF1xRcQbGi7-RU60qMquiueg2X9TyojpZFEFtBMC-xJY9xrpDaRrhhz6AabysafrFqGiqZa7fWXuINELhYJmPgGplNWbf_hV7jjAq5YDM5NnqyqCA_vXkY2vRe6tV6OK10tUGzwyIhBrHjw');"></div>
+</div>
+</nav>
+<!-- Main Canvas Area -->
+<main class="relative w-full h-full pt-16 overflow-hidden group cursor-grab active:cursor-grabbing bg-ceramic">
+<!-- Infinite Grid Background -->
+<div class="absolute inset-0 z-0 opacity-20 pointer-events-none" style="background-image: radial-gradient(#8C8682 1.5px, transparent 1.5px); background-size: 40px 40px;">
+</div>
+<!-- Canvas Content Container (Simulated Pan/Zoom) -->
+<div class="absolute inset-0 z-10 w-[200%] h-[200%] top-[-50%] left-[-50%] transform scale-100 flex items-center justify-center">
+<!-- SVG Layer for Wires (Behind Nodes) -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
+<!-- Connection: Search -> Summarizer -->
+<path class="connection-line connection-line-active" d="M 50% 50% C 55% 50%, 55% 50%, 60% 60%" fill="none"></path>
+<!-- Connection: Trigger -> Search -->
+<path class="connection-line connection-line-active" d="M 40% 40% C 45% 40%, 45% 50%, 50% 50%" fill="none"></path>
+</svg>
+<!-- Node 1: Trigger -->
+<div class="absolute top-[40%] left-[40%] transform -translate-x-1/2 -translate-y-1/2 z-20 w-[280px] bg-plastic rounded-xl shadow-lift border border-[#EBE8E3] group hover:border-amber hover:shadow-lg transition-all duration-200">
+<!-- Node Header -->
+<div class="flex items-center justify-between p-4 border-b border-[#F3EFE8]">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-[#EBE8E3] flex items-center justify-center text-espresso">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+</div>
+<span class="font-display font-bold text-sm text-espresso">Manual Trigger</span>
+</div>
+<!-- Status LED -->
+<div class="w-2 h-2 rounded-full bg-signal-green shadow-[0_0_6px_rgba(107,158,120,0.6)]"></div>
+</div>
+<!-- Node Body -->
+<div class="p-4 relative">
+<!-- Output Port -->
+<div class="absolute -right-[10px] top-1/2 -translate-y-1/2 w-4 h-2 bg-amber rounded-full shadow-sm cursor-pointer hover:scale-110 transition-transform ring-2 ring-plastic z-30" title="Output"></div>
+<div class="text-xs text-tungsten font-mono mb-2">PARAMETERS</div>
+<div class="bg-ceramic p-2 rounded-md border border-[#F3EFE8]">
+<div class="flex justify-between items-center text-xs">
+<span class="text-espresso">Event</span>
+<span class="font-mono text-tungsten">On_Click</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Node 2: Search Agent -->
+<div class="absolute top-[50%] left-[50%] transform -translate-x-1/2 -translate-y-1/2 z-20 w-[280px] bg-plastic rounded-xl shadow-lift border border-amber border-2 transition-all duration-200">
+<!-- Node Header -->
+<div class="flex items-center justify-between p-4 border-b border-[#F3EFE8] bg-amber/5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-amber text-white flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[18px]">travel_explore</span>
+</div>
+<span class="font-display font-bold text-sm text-espresso">Search Agent</span>
+</div>
+<!-- Drag Handle -->
+<div class="flex flex-col gap-[2px] cursor-grab opacity-50 hover:opacity-100">
+<div class="w-4 h-[2px] bg-tungsten rounded-full"></div>
+<div class="w-4 h-[2px] bg-tungsten rounded-full"></div>
+<div class="w-4 h-[2px] bg-tungsten rounded-full"></div>
+</div>
+</div>
+<!-- Node Body -->
+<div class="p-4 relative">
+<!-- Input Port -->
+<div class="absolute -left-[10px] top-1/2 -translate-y-1/2 w-4 h-2 bg-amber rounded-full shadow-sm cursor-pointer hover:scale-110 transition-transform ring-2 ring-plastic z-30" title="Input"></div>
+<!-- Output Port -->
+<div class="absolute -right-[10px] top-1/2 -translate-y-1/2 w-4 h-2 bg-amber rounded-full shadow-sm cursor-pointer hover:scale-110 transition-transform ring-2 ring-plastic z-30" title="Output"></div>
+<div class="space-y-3">
+<div>
+<label class="text-[10px] uppercase tracking-wider text-tungsten font-bold mb-1 block">Topic Query</label>
+<div class="bg-ceramic px-3 py-2 rounded-lg border border-[#D6D1CC] shadow-inner-sm text-sm font-mono text-espresso flex items-center justify-between">
+                                "Syd Mead Architecture"
+                                <span class="material-symbols-outlined text-xs text-tungsten">edit</span>
+</div>
+</div>
+<div class="flex gap-2">
+<div class="h-1.5 flex-1 bg-ceramic rounded-full overflow-hidden">
+<div class="h-full bg-amber w-3/4 rounded-full"></div>
+</div>
+<span class="text-[10px] font-mono text-tungsten">PROCS</span>
+</div>
+</div>
+</div>
+<!-- Status Bar -->
+<div class="px-4 py-2 bg-ceramic/50 border-t border-[#F3EFE8] flex items-center justify-between rounded-b-xl">
+<span class="text-[10px] text-amber font-bold uppercase tracking-wider flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-amber animate-pulse"></span>
+                        Processing
+                    </span>
+<span class="text-[10px] font-mono text-tungsten">ID: 8X-92</span>
+</div>
+</div>
+<!-- Node 3: Summarizer -->
+<div class="absolute top-[60%] left-[60%] transform -translate-x-1/2 -translate-y-1/2 z-20 w-[280px] bg-plastic rounded-xl shadow-lift border border-[#EBE8E3] group hover:border-amber hover:shadow-lg transition-all duration-200">
+<!-- Node Header -->
+<div class="flex items-center justify-between p-4 border-b border-[#F3EFE8]">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-[#EBE8E3] flex items-center justify-center text-espresso">
+<span class="material-symbols-outlined text-[18px]">summarize</span>
+</div>
+<span class="font-display font-bold text-sm text-espresso">Summarizer</span>
+</div>
+<div class="w-2 h-2 rounded-full bg-tungsten/30"></div>
+</div>
+<!-- Node Body -->
+<div class="p-4 relative">
+<!-- Input Port -->
+<div class="absolute -left-[10px] top-1/2 -translate-y-1/2 w-4 h-2 bg-amber rounded-full shadow-sm cursor-pointer hover:scale-110 transition-transform ring-2 ring-plastic z-30" title="Input"></div>
+<!-- Output Port -->
+<div class="absolute -right-[10px] top-1/2 -translate-y-1/2 w-4 h-2 bg-[#D6D1CC] rounded-full shadow-sm cursor-pointer hover:scale-110 transition-transform ring-2 ring-plastic z-30" title="Output"></div>
+<div class="text-xs text-tungsten font-mono mb-2">OUTPUT CONFIG</div>
+<div class="bg-ceramic p-2 rounded-md border border-[#F3EFE8] mb-2">
+<div class="flex justify-between items-center text-xs">
+<span class="text-espresso">Format</span>
+<span class="font-mono text-tungsten">Markdown</span>
+</div>
+</div>
+<div class="bg-ceramic p-2 rounded-md border border-[#F3EFE8]">
+<div class="flex justify-between items-center text-xs">
+<span class="text-espresso">Length</span>
+<span class="font-mono text-tungsten">Concise</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- The Deck (Control Bar) -->
+<div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-50">
+<div class="h-20 px-4 bg-plastic rounded-2xl shadow-deep border border-[#D6D1CC] flex items-center gap-6 backdrop-blur-md">
+<!-- Add Node Button -->
+<button class="pneumatic-active group flex items-center gap-2 px-4 py-2.5 rounded-xl border border-tungsten/30 text-espresso hover:bg-ceramic hover:border-tungsten/50 transition-all">
+<span class="material-symbols-outlined text-tungsten group-hover:text-espresso transition-colors">add</span>
+<span class="font-display font-bold text-sm">Add Node</span>
+</button>
+<div class="w-px h-8 bg-[#D6D1CC]"></div>
+<!-- Play Button -->
+<button class="pneumatic-active w-14 h-14 rounded-full bg-amber shadow-[0_4px_0_#b88a32,0_8px_16px_rgba(228,173,63,0.4)] active:shadow-[0_0_0_#b88a32,inset_0_2px_4px_rgba(0,0,0,0.2)] active:translate-y-[4px] transition-all flex items-center justify-center group relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50 rounded-full"></div>
+<span class="material-symbols-outlined text-white text-3xl font-bold drop-shadow-sm relative z-10 group-hover:scale-110 transition-transform">play_arrow</span>
+</button>
+<div class="w-px h-8 bg-[#D6D1CC]"></div>
+<!-- Settings Button -->
+<button class="pneumatic-active w-10 h-10 flex items-center justify-center rounded-xl text-tungsten hover:text-espresso hover:bg-ceramic transition-colors">
+<span class="material-symbols-outlined animate-[spin_10s_linear_infinite]">settings</span>
+</button>
+</div>
+</div>
+<!-- Floating Inspector Panel (Right) -->
+<aside class="absolute right-6 top-24 w-[360px] bg-plastic rounded-2xl shadow-deep border border-[#D6D1CC] z-40 hidden lg:block">
+<div class="flex items-center justify-between px-5 py-4 border-b border-[#F3EFE8]">
+<h2 class="font-display font-bold text-lg text-espresso">Node Config</h2>
+<button class="text-tungsten hover:text-espresso">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="p-5 space-y-6">
+<!-- Model Selector -->
+<div class="space-y-2">
+<label class="text-xs font-bold text-tungsten uppercase tracking-wider">Model</label>
+<div class="relative">
+<select class="w-full appearance-none bg-ceramic border border-[#D6D1CC] text-espresso font-mono text-sm rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber/50 shadow-inner-sm">
+<option>GPT-4 (Ceramic Optimized)</option>
+<option>Claude 3 Opus</option>
+<option>Llama 3 70B</option>
+</select>
+<div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-tungsten">
+<span class="material-symbols-outlined text-sm">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Temperature Slider -->
+<div class="space-y-3">
+<div class="flex justify-between items-center">
+<label class="text-xs font-bold text-tungsten uppercase tracking-wider">Temperature</label>
+<span class="font-mono text-xs text-espresso bg-ceramic px-2 py-0.5 rounded border border-[#D6D1CC]">0.7</span>
+</div>
+<div class="relative h-2 bg-ceramic rounded-full shadow-inner-sm overflow-hidden">
+<div class="absolute top-0 left-0 h-full w-[70%] bg-amber rounded-full"></div>
+</div>
+<div class="flex justify-between text-[10px] text-tungsten font-mono">
+<span>Precise</span>
+<span>Creative</span>
+</div>
+</div>
+<!-- System Prompt -->
+<div class="space-y-2">
+<label class="text-xs font-bold text-tungsten uppercase tracking-wider">System Prompt</label>
+<div class="relative group">
+<textarea class="w-full h-32 bg-[#F2F0EB] text-espresso font-mono text-xs leading-relaxed p-4 rounded-lg border-none shadow-inner-sm resize-none focus:ring-1 focus:ring-amber/30 outline-none" placeholder="You are a helpful assistant...">You are a specialized research agent focused on architectural history. When analyzing topics, prioritize industrial design movements from 1960-1980.</textarea>
+<div class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-tungsten text-sm cursor-pointer hover:text-espresso">open_in_full</span>
+</div>
+</div>
+</div>
+<!-- Update Button -->
+<button class="w-full py-3 bg-espresso text-plastic font-display font-bold text-sm rounded-xl hover:bg-[#2C2420] active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-base">save</span>
+                    Update Module
+                </button>
+</div>
+</aside>
+<!-- Terminal Drawer (Collapsed State) -->
+<div class="absolute bottom-0 left-0 w-full z-40">
+<!-- Handle -->
+<div class="w-full h-8 bg-[#2C2420] flex items-center justify-center cursor-pointer hover:bg-[#3E3430] transition-colors rounded-t-lg mx-auto max-w-4xl relative">
+<div class="w-12 h-1 bg-tungsten/50 rounded-full"></div>
+</div>
+<!-- Collapsed View Content -->
+<div class="bg-[#211c11] h-10 w-full border-t border-tungsten/20 flex items-center px-6 font-mono text-xs overflow-hidden relative">
+<!-- CRT Scanline Effect Overlay -->
+<div class="absolute inset-0 pointer-events-none opacity-10" style="background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 2px, 3px 100%;"></div>
+<div class="flex gap-4 items-center opacity-80">
+<span class="text-tungsten">[14:02:41]</span>
+<span class="text-amber font-bold">INFO</span>
+<span class="text-ceramic">Workflow loaded successfully. Waiting for trigger...</span>
+</div>
+<div class="ml-auto text-tungsten flex items-center gap-2">
+<div class="w-2 h-2 bg-signal-green rounded-full animate-pulse"></div>
+                     ONLINE
+                 </div>
+</div>
+</div>
+</main>
+</body></html>

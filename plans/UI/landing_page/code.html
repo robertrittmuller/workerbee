@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>WorkerBee | Digital Data Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&amp;family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f4af25", // WorkerBee Amber
+                        "accent-tan": "#d2c5ae",
+                        "bg-deep": "#0d0e12", // Indigo-tinted charcoal
+                        "interface-border": "#2a2d37",
+                    },
+                    fontFamily: {
+                        "mono": ["'JetBrains Mono'", "monospace"],
+                        "sans": ["'Inter'", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        :root {
+            --primary-glow: rgba(244, 175, 37, 0.4);
+            --crt-scanline: rgba(255, 255, 255, 0.02);
+        }
+        body {
+            background-color: theme('colors.bg-deep');
+            background-image: 
+                linear-gradient(var(--crt-scanline) 50%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(42, 45, 55, 0.3) 0%, transparent 80%);
+            background-size: 100% 4px, 100% 100%;
+        }
+        .data-grid {
+            background-image: 
+                linear-gradient(to right, theme('colors.interface-border') 1px, transparent 1px),
+                linear-gradient(to bottom, theme('colors.interface-border') 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        .crt-glow {
+            text-shadow: 0 0 8px var(--primary-glow);
+        }
+        .crt-button-glow {
+            box-shadow: 0 0 15px var(--primary-glow), inset 0 0 5px var(--primary-glow);
+        }
+        .divider-h {
+            height: 1px;
+            background: theme('colors.interface-border');
+            width: 100%;
+        }
+        .divider-v {
+            width: 1px;
+            background: theme('colors.interface-border');
+            height: 100%;
+        }
+        .wireframe-box {
+            border: 1px solid theme('colors.interface-border');
+            position: relative;
+        }
+        .wireframe-box::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px;
+            width: 8px; height: 8px;
+            border-top: 2px solid theme('colors.accent-tan');
+            border-left: 2px solid theme('colors.accent-tan');
+        }
+        .wireframe-box::after {
+            content: '';
+            position: absolute;
+            bottom: -2px; right: -2px;
+            width: 8px; height: 8px;
+            border-bottom: 2px solid theme('colors.accent-tan');
+            border-right: 2px solid theme('colors.accent-tan');
+        }
+    </style>
+</head>
+<body class="font-sans text-white selection:bg-primary selection:text-bg-deep">
+<nav class="fixed top-0 w-full h-16 z-50 bg-bg-deep/90 border-b border-interface-border flex items-center px-6 lg:px-12 justify-between backdrop-blur-md">
+<div class="flex items-center gap-3">
+<div class="text-primary flex items-center justify-center border-2 border-primary p-1">
+<span class="material-symbols-outlined text-2xl font-bold">grid_view</span>
+</div>
+<span class="text-xl font-mono font-extrabold tracking-tighter uppercase crt-glow">WorkerBee <span class="text-accent-tan font-normal text-xs">[DH-01]</span></span>
+</div>
+<div class="hidden md:flex items-center gap-8 font-mono text-xs uppercase tracking-widest text-accent-tan">
+<a class="hover:text-primary transition-colors flex items-center gap-2" href="#">// Product</a>
+<a class="hover:text-primary transition-colors flex items-center gap-2" href="#">// Pricing</a>
+<a class="hover:text-primary transition-colors flex items-center gap-2" href="#">// Docs</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="font-mono text-xs uppercase tracking-widest text-accent-tan hover:text-white transition-colors">Login</button>
+<button class="bg-primary text-bg-deep px-4 py-1.5 font-mono font-bold text-xs uppercase crt-button-glow">
+            Get Started
+        </button>
+</div>
+</nav>
+<section class="relative min-h-screen pt-32 pb-20 px-6 flex flex-col items-center justify-center overflow-hidden border-b border-interface-border">
+<div class="absolute inset-0 data-grid opacity-20"></div>
+<div class="relative z-10 max-w-6xl w-full text-center space-y-10">
+<div class="inline-flex items-center gap-3 px-4 py-1 border border-interface-border bg-white/5 font-mono text-[10px] uppercase tracking-[0.3em] text-accent-tan">
+<span class="w-2 h-2 bg-primary inline-block"></span>
+            System Status: V2.0 Swarm Active
+        </div>
+<h1 class="text-4xl md:text-6xl lg:text-7xl font-mono font-extrabold tracking-tight text-white leading-none">
+            POLLINATE YOUR<br/>
+<span class="text-primary crt-glow">PRODUCTIVITY</span><br/>
+            WITH WORKERBEE.
+        </h1>
+<div class="divider-h max-w-xs mx-auto opacity-50"></div>
+<p class="text-accent-tan font-sans text-sm md:text-base max-w-xl mx-auto uppercase tracking-wide leading-relaxed opacity-80">
+            The hive-mind automation engine that connects your tools with autonomous AI agents.
+        </p>
+<div class="flex flex-col sm:flex-row items-center justify-center gap-6 pt-6">
+<button class="w-full sm:w-auto bg-primary text-bg-deep px-8 py-3 font-mono font-extrabold text-sm uppercase crt-button-glow flex items-center justify-center gap-3">
+                Start Swarming <span class="material-symbols-outlined text-lg">arrow_forward</span>
+</button>
+<button class="w-full sm:w-auto border border-accent-tan text-accent-tan px-8 py-3 font-mono font-bold text-sm uppercase hover:bg-accent-tan hover:text-bg-deep transition-all flex items-center justify-center gap-3">
+                View Demo <span class="material-symbols-outlined text-lg">terminal</span>
+</button>
+</div>
+</div>
+<div class="relative mt-20 w-full max-w-5xl aspect-[21/9] wireframe-box bg-bg-deep/40 flex items-center justify-center p-4">
+<div class="absolute top-2 left-2 font-mono text-[8px] text-accent-tan uppercase opacity-50">3D_MODEL_WIRE_V08.MAP</div>
+<div class="absolute bottom-2 right-2 font-mono text-[8px] text-accent-tan uppercase opacity-50">COORD_X: 42.09 // COORD_Y: -11.92</div>
+<div class="grid grid-cols-4 w-full h-full relative border border-interface-border/30">
+<div class="border-r border-interface-border/30 flex items-center justify-center">
+<div class="p-4 border border-accent-tan/20 flex flex-col items-center gap-2">
+<span class="material-symbols-outlined text-accent-tan text-3xl">database</span>
+<span class="font-mono text-[8px] text-accent-tan uppercase">Data_In</span>
+</div>
+</div>
+<div class="border-r border-interface-border/30 flex items-center justify-center">
+<div class="p-4 border border-primary/40 bg-primary/5 flex flex-col items-center gap-2 translate-y-6">
+<span class="material-symbols-outlined text-primary text-3xl crt-glow">memory</span>
+<span class="font-mono text-[8px] text-primary uppercase">Proc_Node</span>
+</div>
+</div>
+<div class="border-r border-interface-border/30 flex items-center justify-center">
+<div class="p-4 border border-accent-tan/20 flex flex-col items-center gap-2 -translate-y-6">
+<span class="material-symbols-outlined text-accent-tan text-3xl">account_tree</span>
+<span class="font-mono text-[8px] text-accent-tan uppercase">Logic_Map</span>
+</div>
+</div>
+<div class="flex items-center justify-center">
+<div class="p-6 border-2 border-primary bg-primary/10 flex flex-col items-center gap-2 crt-button-glow">
+<span class="material-symbols-outlined text-primary text-4xl crt-glow">send</span>
+<span class="font-mono text-[10px] font-bold text-primary uppercase">Execute</span>
+</div>
+</div>
+<svg class="absolute inset-0 w-full h-full pointer-events-none opacity-20">
+<path d="M 120 150 L 350 190 L 580 110 L 820 150" fill="none" stroke="#f4af25" stroke-width="1"></path>
+<circle cx="120" cy="150" fill="#f4af25" r="3"></circle>
+<circle cx="350" cy="190" fill="#f4af25" r="3"></circle>
+<circle cx="580" cy="110" fill="#f4af25" r="3"></circle>
+<circle cx="820" cy="150" fill="#f4af25" r="3"></circle>
+</svg>
+</div>
+</div>
+</section>
+<section class="py-24 px-6 lg:px-20 relative">
+<div class="max-w-7xl mx-auto">
+<div class="mb-16 flex flex-col md:flex-row md:items-end justify-between border-b border-interface-border pb-8">
+<div class="space-y-4">
+<h2 class="text-primary font-mono font-bold uppercase tracking-[0.4em] text-xs crt-glow">// CAPABILITIES</h2>
+<h3 class="text-3xl md:text-4xl font-mono font-extrabold tracking-tighter text-white uppercase">Engineered for the Collective.</h3>
+</div>
+<div class="mt-4 md:mt-0 font-mono text-[10px] text-accent-tan uppercase tracking-widest bg-white/5 px-4 py-1 border border-interface-border">
+                Access_Level: Root
+            </div>
+</div>
+<div class="grid md:grid-cols-3 border border-interface-border">
+<div class="p-10 space-y-8 border-b md:border-b-0 md:border-r border-interface-border group hover:bg-white/[0.02] transition-colors">
+<div class="w-16 h-16 border-2 border-primary/30 flex items-center justify-center text-primary group-hover:border-primary transition-all">
+<span class="material-symbols-outlined text-4xl">hub</span>
+</div>
+<div class="space-y-4">
+<h4 class="text-xl font-mono font-bold text-white uppercase tracking-tight">Hive Intelligence</h4>
+<p class="text-accent-tan text-xs uppercase tracking-wider leading-relaxed opacity-70">Deploy swarms of specialized AI agents that communicate and collaborate to solve complex multi-step tasks autonomously.</p>
+</div>
+<div class="pt-4 font-mono text-[10px] text-primary/60 uppercase">Module_01 // Active</div>
+</div>
+<div class="p-10 space-y-8 border-b md:border-b-0 md:border-r border-interface-border group hover:bg-white/[0.02] transition-colors">
+<div class="w-16 h-16 border-2 border-primary/30 flex items-center justify-center text-primary group-hover:border-primary transition-all">
+<span class="material-symbols-outlined text-4xl">widgets</span>
+</div>
+<div class="space-y-4">
+<h4 class="text-xl font-mono font-bold text-white uppercase tracking-tight">Hex-Node Architecture</h4>
+<p class="text-accent-tan text-xs uppercase tracking-wider leading-relaxed opacity-70">A modular workflow engine designed for infinite scalability. Every 'Cell' is a reusable component in your automation honeycomb.</p>
+</div>
+<div class="pt-4 font-mono text-[10px] text-primary/60 uppercase">Module_02 // Active</div>
+</div>
+<div class="p-10 space-y-8 group hover:bg-white/[0.02] transition-colors">
+<div class="w-16 h-16 border-2 border-primary/30 flex items-center justify-center text-primary group-hover:border-primary transition-all">
+<span class="material-symbols-outlined text-4xl">monitoring</span>
+</div>
+<div class="space-y-4">
+<h4 class="text-xl font-mono font-bold text-white uppercase tracking-tight">Honey-Flow Monitoring</h4>
+<p class="text-accent-tan text-xs uppercase tracking-wider leading-relaxed opacity-70">Visual real-time analytics. Watch your data flow through the hive with millisecond precision and detailed audit logs.</p>
+</div>
+<div class="pt-4 font-mono text-[10px] text-primary/60 uppercase">Module_03 // Active</div>
+</div>
+</div>
+</div>
+</section>
+<section class="py-24 px-6 lg:px-20 border-t border-interface-border bg-white/[0.01]">
+<div class="max-w-7xl mx-auto">
+<div class="text-center mb-16 space-y-4">
+<h2 class="text-3xl font-mono font-extrabold text-white uppercase tracking-tighter">The Lifecycle of a Task</h2>
+<div class="divider-h max-w-xs mx-auto opacity-30"></div>
+<p class="text-accent-tan text-[10px] uppercase tracking-[0.3em] font-mono">Process_Workflow_Sequencing</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 border border-interface-border">
+<div class="p-8 border-b md:border-b-0 md:border-r border-interface-border flex flex-col items-center text-center space-y-6">
+<div class="font-mono text-xs text-primary bg-primary/10 border border-primary/40 px-3 py-1">STEP_01</div>
+<div class="w-12 h-12 border border-interface-border flex items-center justify-center text-accent-tan">
+<span class="material-symbols-outlined text-2xl">search</span>
+</div>
+<div class="space-y-2">
+<h5 class="text-sm font-mono font-bold text-white uppercase">Deploy Scout</h5>
+<p class="text-accent-tan text-[10px] uppercase tracking-wide opacity-60">Identify the data sources and triggers for your swarm.</p>
+</div>
+</div>
+<div class="p-8 border-b md:border-b-0 md:border-r border-interface-border flex flex-col items-center text-center space-y-6">
+<div class="font-mono text-xs text-accent-tan border border-interface-border px-3 py-1">STEP_02</div>
+<div class="w-12 h-12 border border-interface-border flex items-center justify-center text-accent-tan">
+<span class="material-symbols-outlined text-2xl">architecture</span>
+</div>
+<div class="space-y-2">
+<h5 class="text-sm font-mono font-bold text-white uppercase">Map Workflow</h5>
+<p class="text-accent-tan text-[10px] uppercase tracking-wide opacity-60">Design the hexagonal logic path between nodes.</p>
+</div>
+</div>
+<div class="p-8 border-b md:border-b-0 md:border-r border-interface-border flex flex-col items-center text-center space-y-6">
+<div class="font-mono text-xs text-accent-tan border border-interface-border px-3 py-1">STEP_03</div>
+<div class="w-12 h-12 border border-interface-border flex items-center justify-center text-accent-tan">
+<span class="material-symbols-outlined text-2xl">dataset</span>
+</div>
+<div class="space-y-2">
+<h5 class="text-sm font-mono font-bold text-white uppercase">Collect Data</h5>
+<p class="text-accent-tan text-[10px] uppercase tracking-wide opacity-60">Aggregated results are processed through AI refinement.</p>
+</div>
+</div>
+<div class="p-8 flex flex-col items-center text-center space-y-6">
+<div class="font-mono text-xs text-accent-tan border border-interface-border px-3 py-1">STEP_04</div>
+<div class="w-12 h-12 border border-interface-border flex items-center justify-center text-accent-tan">
+<span class="material-symbols-outlined text-2xl">verified</span>
+</div>
+<div class="space-y-2">
+<h5 class="text-sm font-mono font-bold text-white uppercase">Execute Task</h5>
+<p class="text-accent-tan text-[10px] uppercase tracking-wide opacity-60">The final payload is delivered to your destination tools.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="py-32 px-6 border-t border-interface-border relative overflow-hidden">
+<div class="absolute inset-0 data-grid opacity-10"></div>
+<div class="max-w-4xl mx-auto relative z-10 text-center space-y-12">
+<h2 class="text-4xl md:text-6xl font-mono font-extrabold tracking-tighter text-white uppercase">Ready to start the swarm?</h2>
+<div class="flex flex-col items-center gap-8">
+<p class="text-accent-tan font-mono text-xs uppercase tracking-[0.2em]">Established_Connection: Pulse_Sync_Acknowledge</p>
+<button class="bg-primary text-bg-deep px-12 py-5 font-mono font-extrabold text-lg uppercase crt-button-glow">
+                Join the Hive
+            </button>
+<p class="text-accent-tan text-[10px] uppercase tracking-widest opacity-50">Join 10,000+ teams automating with collective AI intelligence.</p>
+</div>
+</div>
+</section>
+<footer class="bg-bg-deep pt-20 pb-10 px-6 lg:px-20 border-t border-interface-border font-mono text-xs">
+<div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-20">
+<div class="lg:col-span-2 space-y-8">
+<div class="flex items-center gap-3">
+<div class="text-primary flex items-center justify-center border-2 border-primary p-1">
+<span class="material-symbols-outlined text-xl font-bold">grid_view</span>
+</div>
+<span class="text-lg font-extrabold tracking-tight uppercase text-white">WorkerBee</span>
+</div>
+<p class="text-accent-tan uppercase tracking-wide opacity-60 max-w-sm leading-relaxed">
+                The world's most advanced AI hive-mind automation engine. Scaling intelligence from the ground up.
+            </p>
+<div class="flex gap-4">
+<a class="w-10 h-10 border border-interface-border flex items-center justify-center hover:border-primary hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined text-lg">terminal</span>
+</a>
+<a class="w-10 h-10 border border-interface-border flex items-center justify-center hover:border-primary hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined text-lg">code</span>
+</a>
+</div>
+</div>
+<div class="space-y-6">
+<h6 class="text-primary font-bold uppercase tracking-widest text-[10px]">// Product</h6>
+<ul class="space-y-4 text-accent-tan uppercase tracking-widest opacity-60">
+<li><a class="hover:text-white" href="#">Cells Marketplace</a></li>
+<li><a class="hover:text-white" href="#">Automation Hub</a></li>
+<li><a class="hover:text-white" href="#">Worker Agents</a></li>
+<li><a class="hover:text-white" href="#">Honey-Flow API</a></li>
+</ul>
+</div>
+<div class="space-y-6">
+<h6 class="text-primary font-bold uppercase tracking-widest text-[10px]">// Company</h6>
+<ul class="space-y-4 text-accent-tan uppercase tracking-widest opacity-60">
+<li><a class="hover:text-white" href="#">About Us</a></li>
+<li><a class="hover:text-white" href="#">Careers</a></li>
+<li><a class="hover:text-white" href="#">Security</a></li>
+<li><a class="hover:text-white" href="#">Privacy</a></li>
+</ul>
+</div>
+<div class="space-y-6">
+<h6 class="text-primary font-bold uppercase tracking-widest text-[10px]">// Resources</h6>
+<ul class="space-y-4 text-accent-tan uppercase tracking-widest opacity-60">
+<li><a class="hover:text-white" href="#">Documentation</a></li>
+<li><a class="hover:text-white" href="#">Community</a></li>
+<li><a class="hover:text-white" href="#">Status</a></li>
+<li><a class="hover:text-white" href="#">Support</a></li>
+</ul>
+</div>
+</div>
+<div class="max-w-7xl mx-auto pt-10 border-t border-interface-border flex flex-col md:flex-row justify-between items-center gap-4 text-accent-tan text-[9px] uppercase tracking-[0.2em] opacity-40">
+<p>© 2024 WorkerBee Technologies Inc. [SYSTEM_READY]</p>
+<div class="flex gap-8">
+<a class="hover:text-white" href="#">Terms of Service</a>
+<a class="hover:text-white" href="#">Cookie Policy</a>
+</div>
+</div>
+</footer>
+
+</body></html>

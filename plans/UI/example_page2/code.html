@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ceramic Future - Agent Library</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=IBM+Plex+Sans:wght@300;400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "ceramic": "#EBE8E3",
+                        "ceramic-dark": "#F7F5F0", // Sidebar bg
+                        "plastic": "#FDFCF9",     // Card bg
+                        "espresso": "#3E3430",    // Text
+                        "tungsten": "#8C8682",    // Muted
+                        "amber": "#DDAA44",       // Accent
+                        "signal-green": "#6B9E78",
+                        "alert-red": "#CC5544",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["IBM Plex Sans", "sans-serif"],
+                        "mono": ["IBM Plex Mono", "monospace"],
+                    },
+                    boxShadow: {
+                        "lift": "0 8px 24px -4px rgba(62, 52, 48, 0.12)",
+                        "soft": "0 4px 12px rgba(62, 52, 48, 0.08)",
+                        "inset-slot": "inset 0 2px 4px rgba(62, 52, 48, 0.08)",
+                        "glow": "0 0 12px rgba(221, 170, 68, 0.4)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'IBM Plex Sans', sans-serif;
+            background-color: #EBE8E3; /* Ceramic main bg */
+            color: #3E3430; /* Espresso */
+            overflow: hidden;
+        }
+        
+        /* Dot grid pattern for the canvas area (visual context) */
+        .bg-grid-pattern {
+            background-image: radial-gradient(#D6D1CC 2px, transparent 2px);
+            background-size: 40px 40px;
+        }
+
+        /* Custom scrollbar for the sidebar */
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background-color: #D6D1CC;
+            border-radius: 20px;
+        }
+
+        /* Card interaction styles */
+        .module-card {
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .module-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -2px rgba(62, 52, 48, 0.12);
+            border-color: #DDAA44;
+        }
+        .module-card:active {
+            transform: scale(0.98);
+            box-shadow: inset 0 2px 4px rgba(62, 52, 48, 0.05);
+        }
+        
+        /* Search Input Focus */
+        .search-slot:focus-within {
+            box-shadow: inset 0 2px 4px rgba(62, 52, 48, 0.15);
+            border-color: #DDAA44;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex overflow-hidden">
+<!-- 1. SIDEBAR (The Cartridge) -->
+<aside class="w-[320px] h-full flex flex-col bg-ceramic-dark border-r border-[#D6D1CC] relative z-20 shadow-xl">
+<!-- Header Section -->
+<div class="p-6 pb-2 shrink-0">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-8 h-8 bg-espresso text-ceramic rounded-lg flex items-center justify-center shadow-md">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+</div>
+<h1 class="font-display font-bold text-xl tracking-tight text-espresso uppercase">Library</h1>
+</div>
+<!-- Search Slot -->
+<div class="search-slot group relative w-full h-12 bg-[#EBE8E3] rounded-xl border border-transparent shadow-inset-slot flex items-center px-4 transition-all duration-200">
+<span class="material-symbols-outlined text-tungsten group-focus-within:text-amber transition-colors">search</span>
+<input class="w-full bg-transparent border-none focus:ring-0 text-espresso placeholder-tungsten font-body text-sm ml-2 h-full" placeholder="Find component..." type="text"/>
+<div class="w-1.5 h-1.5 rounded-full bg-tungsten/30 group-focus-within:bg-amber group-focus-within:shadow-glow transition-all"></div>
+</div>
+</div>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto sidebar-scroll px-6 py-2 space-y-8">
+<!-- Category: AGENTS -->
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<h2 class="font-display font-bold text-xs tracking-widest text-tungsten uppercase">Agents</h2>
+<div class="h-[1px] flex-1 bg-[#D6D1CC] ml-3 opacity-50"></div>
+</div>
+<!-- Draggable Agent Card -->
+<div class="module-card cursor-grab bg-plastic border border-[#EBE8E3] rounded-xl p-3 flex items-center justify-between group">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-ceramic flex items-center justify-center border border-[#EBE8E3] shadow-inner text-espresso">
+<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+</div>
+<div class="flex flex-col">
+<span class="font-display font-bold text-sm text-espresso leading-tight group-hover:text-amber transition-colors">Researcher</span>
+<span class="font-body text-[11px] text-tungsten leading-tight mt-0.5">Deep web analysis</span>
+</div>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity text-tungsten">
+<span class="material-symbols-outlined text-[16px]">drag_indicator</span>
+</div>
+</div>
+<div class="module-card cursor-grab bg-plastic border border-[#EBE8E3] rounded-xl p-3 flex items-center justify-between group">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-ceramic flex items-center justify-center border border-[#EBE8E3] shadow-inner text-espresso">
+<span class="material-symbols-outlined text-[20px]">edit_note</span>
+</div>
+<div class="flex flex-col">
+<span class="font-display font-bold text-sm text-espresso leading-tight group-hover:text-amber transition-colors">Summarizer</span>
+<span class="font-body text-[11px] text-tungsten leading-tight mt-0.5">Condense text</span>
+</div>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity text-tungsten">
+<span class="material-symbols-outlined text-[16px]">drag_indicator</span>
+</div>
+</div>
+<div class="module-card cursor-grab bg-plastic border border-[#EBE8E3] rounded-xl p-3 flex items-center justify-between group">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-ceramic flex items-center justify-center border border-[#EBE8E3] shadow-inner text-espresso">
+<span class="material-symbols-outlined text-[20px]">psychology</span>
+</div>
+<div class="flex flex-col">
+<span class="font-display font-bold text-sm text-espresso leading-tight group-hover:text-amber transition-colors">Strategist</span>
+<span class="font-body text-[11px] text-tungsten leading-tight mt-0.5">Planning logic</span>
+</div>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity text-tungsten">
+<span class="material-symbols-outlined text-[16px]">drag_indicator</span>
+</div>
+</div>
+</div>
+<!-- Category: TOOLS -->
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<h2 class="font-display font-bold text-xs tracking-widest text-tungsten uppercase">Tools</h2>
+<div class="h-[1px] flex-1 bg-[#D6D1CC] ml-3 opacity-50"></div>
+</div>
+<div class="module-card cursor-grab bg-plastic border border-[#EBE8E3] rounded-xl p-3 flex items-center justify-between group">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-ceramic flex items-center justify-center border border-[#EBE8E3] shadow-inner text-espresso">
+<span class="material-symbols-outlined text-[20px]">public</span>
+</div>
+<div class="flex flex-col">
+<span class="font-display font-bold text-sm text-espresso leading-tight group-hover:text-amber transition-colors">Web Search</span>
+<span class="font-body text-[11px] text-tungsten leading-tight mt-0.5">Google / Bing API</span>
+</div>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity text-tungsten">
+<span class="material-symbols-outlined text-[16px]">drag_indicator</span>
+</div>
+</div>
+<div class="module-card cursor-grab bg-plastic border border-[#EBE8E3] rounded-xl p-3 flex items-center justify-between group">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-ceramic flex items-center justify-center border border-[#EBE8E3] shadow-inner text-espresso">
+<span class="material-symbols-outlined text-[20px]">database</span>
+</div>
+<div class="flex flex-col">
+<span class="font-display font-bold text-sm text-espresso leading-tight group-hover:text-amber transition-colors">Vector DB</span>
+<span class="font-body text-[11px] text-tungsten leading-tight mt-0.5">Pinecone query</span>
+</div>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity text-tungsten">
+<span class="material-symbols-outlined text-[16px]">drag_indicator</span>
+</div>
+</div>
+<div class="module-card cursor-grab bg-plastic border border-[#EBE8E3] rounded-xl p-3 flex items-center justify-between group">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-ceramic flex items-center justify-center border border-[#EBE8E3] shadow-inner text-espresso">
+<span class="material-symbols-outlined text-[20px]">api</span>
+</div>
+<div class="flex flex-col">
+<span class="font-display font-bold text-sm text-espresso leading-tight group-hover:text-amber transition-colors">HTTP Request</span>
+<span class="font-body text-[11px] text-tungsten leading-tight mt-0.5">GET / POST</span>
+</div>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity text-tungsten">
+<span class="material-symbols-outlined text-[16px]">drag_indicator</span>
+</div>
+</div>
+</div>
+<!-- Category: LOGIC -->
+<div class="space-y-3 pb-8">
+<div class="flex items-center justify-between">
+<h2 class="font-display font-bold text-xs tracking-widest text-tungsten uppercase">Logic</h2>
+<div class="h-[1px] flex-1 bg-[#D6D1CC] ml-3 opacity-50"></div>
+</div>
+<div class="module-card cursor-grab bg-plastic border border-[#EBE8E3] rounded-xl p-3 flex items-center justify-between group">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-ceramic flex items-center justify-center border border-[#EBE8E3] shadow-inner text-espresso">
+<span class="material-symbols-outlined text-[20px]">alt_route</span>
+</div>
+<div class="flex flex-col">
+<span class="font-display font-bold text-sm text-espresso leading-tight group-hover:text-amber transition-colors">Router</span>
+<span class="font-body text-[11px] text-tungsten leading-tight mt-0.5">Conditional flow</span>
+</div>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity text-tungsten">
+<span class="material-symbols-outlined text-[16px]">drag_indicator</span>
+</div>
+</div>
+<div class="module-card cursor-grab bg-plastic border border-[#EBE8E3] rounded-xl p-3 flex items-center justify-between group">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-ceramic flex items-center justify-center border border-[#EBE8E3] shadow-inner text-espresso">
+<span class="material-symbols-outlined text-[20px]">hourglass_empty</span>
+</div>
+<div class="flex flex-col">
+<span class="font-display font-bold text-sm text-espresso leading-tight group-hover:text-amber transition-colors">Delay</span>
+<span class="font-body text-[11px] text-tungsten leading-tight mt-0.5">Wait 500ms</span>
+</div>
+</div>
+<div class="opacity-0 group-hover:opacity-100 transition-opacity text-tungsten">
+<span class="material-symbols-outlined text-[16px]">drag_indicator</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom User Profile / Settings -->
+<div class="p-4 border-t border-[#D6D1CC] bg-ceramic-dark">
+<div class="flex items-center gap-3 p-2 rounded-xl hover:bg-ceramic cursor-pointer transition-colors">
+<div class="w-8 h-8 rounded-full bg-tungsten/20 flex items-center justify-center text-espresso font-bold font-display overflow-hidden border border-[#D6D1CC]">
+<img alt="User Avatar - Man with glasses smiling" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOYrHKc1BXZR80bW7lgO3YljSjarTfs_l5FwNnubiG35jU1b2dpszYaLtwlgzMk-6mv657KpZgYiJkKW6592EgesU8N5Qwl39cyhle5jpvPJygUV5KMld65XU8KJJltG-AcA6VuL8fhivRHb4C-k6zzdMPy-P5S9s7wXMEJ-z9D2SEY5WYgF-qibm1pNo3yceOZnSQ_ZtVM_M61vroS2qwIip3A9iOVCwavzdt7YZtMwEW0_2UaWUEztFow_k-RI7uh56nDZSudsU"/>
+</div>
+<div class="flex flex-col">
+<span class="font-display font-bold text-xs text-espresso">System Admin</span>
+<span class="font-mono text-[10px] text-tungsten">v.2.0.4-beta</span>
+</div>
+<span class="material-symbols-outlined text-tungsten ml-auto text-[18px]">settings</span>
+</div>
+</div>
+</aside>
+<!-- 2. MAIN CANVAS AREA (Contextual Background) -->
+<!-- This serves as the background to show where the library sits in context -->
+<main class="flex-1 h-full relative bg-ceramic bg-grid-pattern overflow-hidden">
+<!-- Header / Nav in background (Context) -->
+<header class="absolute top-0 left-0 w-full h-16 flex items-center justify-between px-8 z-10 pointer-events-none opacity-50">
+<div class="flex items-center gap-4">
+<!-- Breadcrumbs -->
+<div class="text-sm font-mono text-tungsten">PROJECT / NEWS_ANALYSIS_BOT / <span class="text-amber">MAIN_FLOW</span></div>
+</div>
+</header>
+<!-- Example Nodes on Canvas (Context) -->
+<div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] pointer-events-none opacity-40 blur-[1px]">
+<!-- Just illustrative shapes to show "The Canvas" -->
+<div class="absolute top-20 left-20 w-[280px] h-[160px] bg-plastic border border-tungsten rounded-2xl shadow-soft"></div>
+<div class="absolute top-60 left-[400px] w-[280px] h-[160px] bg-plastic border border-amber rounded-2xl shadow-lift"></div>
+<!-- Connecting line -->
+<svg class="absolute top-0 left-0 w-full h-full">
+<path d="M 300 100 C 350 100, 350 300, 400 300" fill="none" stroke="#DDAA44" stroke-dasharray="8 4" stroke-width="2"></path>
+</svg>
+</div>
+<!-- The Deck (Bottom Control Bar) -->
+<div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 h-16 bg-plastic rounded-full shadow-lift border border-[#EBE8E3] flex items-center px-2 gap-2 z-10 pointer-events-none">
+<button class="w-12 h-12 rounded-full flex items-center justify-center text-tungsten hover:text-espresso transition-colors">
+<span class="material-symbols-outlined">add</span>
+</button>
+<div class="w-[1px] h-6 bg-[#D6D1CC]"></div>
+<button class="w-12 h-12 rounded-full bg-amber text-espresso flex items-center justify-center shadow-lg hover:brightness-110 transition-all">
+<span class="material-symbols-outlined fill-current">play_arrow</span>
+</button>
+<div class="w-[1px] h-6 bg-[#D6D1CC]"></div>
+<button class="w-12 h-12 rounded-full flex items-center justify-center text-tungsten hover:text-espresso transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</main>
+</body></html>

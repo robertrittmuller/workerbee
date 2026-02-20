@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>System Access Portal | WorkerBee</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&amp;family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f4af25",
+                        "accent-tan": "#d2c5ae",
+                        "bg-deep": "#0d0e12",
+                        "interface-border": "#2a2d37",
+                    },
+                    fontFamily: {
+                        "mono": ["'JetBrains Mono'", "monospace"],
+                        "sans": ["'Inter'", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        :root {
+            --primary-glow: rgba(244, 175, 37, 0.4);
+            --crt-scanline: rgba(255, 255, 255, 0.02);
+            --wireframe-color: rgba(244, 175, 37, 0.08);
+        }
+        body {
+            background-color: theme('colors.bg-deep');
+            overflow: hidden;
+        }
+        .immersive-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background: radial-gradient(circle at 50% 50%, #1a1c24 0%, #0d0e12 100%);
+        }
+        .data-grid-3d {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(var(--crt-scanline) 50%, transparent 50%),
+                linear-gradient(to right, var(--wireframe-color) 1px, transparent 1px),
+                linear-gradient(to bottom, var(--wireframe-color) 1px, transparent 1px);
+            background-size: 100% 4px, 60px 60px, 60px 60px;
+            transform: perspective(1000px) rotateX(60deg) translateY(-100px) scale(2.5);
+            transform-origin: top;
+            opacity: 0.6;
+        }
+        .wireframe-landscape {
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 100 L20 40 L40 80 L60 20 L80 90 L100 50 L100 100 Z' fill='none' stroke='rgba(244, 175, 37, 0.1)' stroke-width='0.5'/%3E%3C/svg%3E");
+            background-size: 400px 400px;
+            opacity: 0.3;
+        }
+        .crt-glow {
+            text-shadow: 0 0 8px var(--primary-glow);
+        }
+        .crt-button-glow {
+            box-shadow: 0 0 15px var(--primary-glow), inset 0 0 5px var(--primary-glow);
+        }
+        .wireframe-box {
+            border: 1px solid theme('colors.interface-border');
+            position: relative;
+        }
+        .wireframe-box::before {
+            content: '';
+            position: absolute;
+            top: -1px; left: -1px;
+            width: 12px; height: 12px;
+            border-top: 2px solid theme('colors.primary');
+            border-left: 2px solid theme('colors.primary');
+        }
+        .wireframe-box::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; right: -1px;
+            width: 12px; height: 12px;
+            border-bottom: 2px solid theme('colors.primary');
+            border-right: 2px solid theme('colors.primary');
+        }
+        .data-pathways {
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 49.5%,
+                rgba(244, 175, 37, 0.03) 50%,
+                transparent 50.5%
+            );
+            background-size: 200px 100%;
+        }
+        .floating-console {
+            box-shadow: 0 0 50px rgba(0,0,0,0.8), 0 0 20px rgba(244, 175, 37, 0.05);
+        }
+    </style>
+</head>
+<body class="font-sans text-white selection:bg-primary selection:text-bg-deep min-h-screen flex flex-col">
+<div class="immersive-bg">
+<div class="data-grid-3d"></div>
+<div class="wireframe-landscape"></div>
+<div class="data-pathways"></div>
+<div class="absolute inset-0 opacity-20 pointer-events-none">
+<div class="absolute top-1/4 left-0 w-full h-[1px] bg-primary/30"></div>
+<div class="absolute top-3/4 left-0 w-full h-[1px] bg-primary/30"></div>
+<div class="absolute left-1/4 top-0 h-full w-[1px] bg-primary/30"></div>
+<div class="absolute left-3/4 top-0 h-full w-[1px] bg-primary/30"></div>
+</div>
+</div>
+<nav class="fixed top-0 w-full h-16 z-50 bg-bg-deep/40 flex items-center px-6 lg:px-12 justify-between backdrop-blur-md border-b border-white/5">
+<div class="flex items-center gap-3">
+<div class="text-primary flex items-center justify-center border border-primary/50 p-1">
+<span class="material-symbols-outlined text-xl font-bold">grid_view</span>
+</div>
+<span class="text-xl font-mono font-extrabold tracking-tighter uppercase crt-glow">WorkerBee <span class="text-accent-tan font-normal text-xs">[AUTH-01]</span></span>
+</div>
+<div class="hidden md:flex items-center gap-8 font-mono text-[10px] uppercase tracking-[0.3em] text-accent-tan/60">
+<span class="flex items-center gap-2">// SECURE_PERIMETER_ACTIVE</span>
+<span class="flex items-center gap-2">// NODE: DC-04_CENTRAL</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="font-mono text-[10px] uppercase tracking-widest text-accent-tan hover:text-white transition-colors border border-accent-tan/20 px-3 py-1 bg-white/5">Help</button>
+</div>
+</nav>
+<main class="flex-grow relative z-10 flex items-center justify-center p-6">
+<div class="w-full max-w-lg flex flex-col items-center gap-6">
+<div class="w-full wireframe-box bg-bg-deep/90 backdrop-blur-xl p-10 space-y-8 floating-console">
+<div class="absolute -top-12 left-0 right-0 flex justify-center">
+<div class="flex flex-col items-center">
+<div class="w-20 h-20 wireframe-box bg-bg-deep/90 flex items-center justify-center mb-2 border-primary/30">
+<span class="material-symbols-outlined text-primary text-3xl crt-glow">shield_person</span>
+</div>
+<div class="h-12 w-[1px] bg-primary/30"></div>
+</div>
+</div>
+<div class="text-center space-y-4 pt-4">
+<div class="inline-flex items-center gap-3 px-4 py-1.5 border border-interface-border bg-white/5 font-mono text-[10px] uppercase tracking-[0.2em] text-accent-tan">
+<span class="w-2 h-2 bg-primary animate-pulse inline-block"></span>
+                        SYSTEM_ACCESS_PORTAL // TERMINAL: PRT-99
+                    </div>
+<h1 class="text-3xl font-mono font-extrabold tracking-tight text-white uppercase crt-glow leading-none">
+                        Authorization Required
+                    </h1>
+<div class="flex items-center justify-center gap-4 opacity-30">
+<div class="h-[1px] w-12 bg-accent-tan"></div>
+<span class="font-mono text-[8px] uppercase tracking-[0.4em]">Identity Verification</span>
+<div class="h-[1px] w-12 bg-accent-tan"></div>
+</div>
+</div>
+<form class="space-y-6">
+<div class="space-y-2">
+<div class="flex justify-between items-end">
+<label class="block font-mono text-[10px] text-accent-tan uppercase tracking-[0.2em]">Username</label>
+<span class="font-mono text-[8px] text-accent-tan/30 uppercase">ID_FIELD_ALPHA</span>
+</div>
+<div class="relative group">
+<input class="w-full bg-bg-deep/50 border border-interface-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-white font-mono text-sm px-5 py-4 outline-none transition-all placeholder:text-white/10" placeholder="USER_IDENT_ALPHA" type="text"/>
+<div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-interface-border group-focus-within:text-primary/50 transition-colors">
+<span class="material-symbols-outlined text-lg">person</span>
+</div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-end">
+<label class="block font-mono text-[10px] text-accent-tan uppercase tracking-[0.2em]">Password</label>
+<span class="font-mono text-[8px] text-accent-tan/30 uppercase">KEY_FIELD_SECURE</span>
+</div>
+<div class="relative group">
+<input class="w-full bg-bg-deep/50 border border-interface-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-white font-mono text-sm px-5 py-4 outline-none transition-all placeholder:text-white/10" placeholder="••••••••••••" type="password"/>
+<div class="absolute inset-y-0 right-4 flex items-center pointer-events-none text-interface-border group-focus-within:text-primary/50 transition-colors">
+<span class="material-symbols-outlined text-lg">key</span>
+</div>
+</div>
+</div>
+<div class="pt-4">
+<button class="w-full bg-primary text-bg-deep px-8 py-4 font-mono font-extrabold text-sm uppercase crt-button-glow flex items-center justify-center gap-3 hover:brightness-110 active:scale-[0.98] transition-all" type="submit">
+                            Login <span class="material-symbols-outlined text-xl">login</span>
+</button>
+</div>
+</form>
+<div class="pt-6 border-t border-interface-border/50">
+<div class="flex flex-col sm:flex-row justify-between w-full gap-6 text-[10px] font-mono uppercase tracking-widest">
+<a class="text-accent-tan/70 hover:text-primary transition-colors flex items-center gap-2 group" href="#">
+<span class="material-symbols-outlined text-[14px] group-hover:rotate-12 transition-transform">help</span> Forgot Access Key?
+                        </a>
+<a class="text-accent-tan/70 hover:text-primary transition-colors flex items-center gap-2 group" href="#">
+<span class="material-symbols-outlined text-[14px] group-hover:scale-110 transition-transform">person_add</span> New User Registration
+                        </a>
+</div>
+</div>
+</div>
+<div class="w-full flex justify-between items-center font-mono text-[9px] text-accent-tan uppercase tracking-[0.3em] opacity-40">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[10px]">sensors</span>
+                    Secure_Connection: Established
+                </div>
+<div class="flex items-center gap-2">
+                    Enc_Status: AES_256_ACTIVE
+                    <span class="material-symbols-outlined text-[10px]">verified_user</span>
+</div>
+</div>
+</div>
+</main>
+<footer class="relative z-10 py-6 px-6 lg:px-12 border-t border-white/5 font-mono text-xs bg-bg-deep/60 backdrop-blur-sm">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-accent-tan/40 text-[9px] uppercase tracking-[0.2em]">
+<div class="flex items-center gap-4">
+<p>© 2024 WorkerBee Technologies Inc. [SYSTEM_INTERFACE_STABLE]</p>
+<span class="h-3 w-[1px] bg-white/10 hidden md:block"></span>
+<p class="hidden md:block">LOC: SUB-LEVEL_09</p>
+</div>
+<div class="flex gap-8">
+<a class="hover:text-white transition-colors" href="#">Terms of Service</a>
+<a class="hover:text-white transition-colors" href="#">Privacy Protocol</a>
+<a class="hover:text-white transition-colors" href="#">Security Audit</a>
+</div>
+</div>
+</footer>
+
+</body></html>

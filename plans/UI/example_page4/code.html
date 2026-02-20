@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ceramic Future - Terminal Readout</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#DDAA44", // Amber from PRD
+                        "ceramic": "#EBE8E3", // Main background
+                        "plastic": "#FDFCF9", // Surface
+                        "espresso": "#3E3430", // Text
+                        "espresso-dark": "#2C2420", // Terminal bg
+                        "tungsten": "#8C8682", // Muted
+                        "signal-green": "#6B9E78",
+                        "signal-red": "#CC5544",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["IBM Plex Sans", "sans-serif"],
+                        "mono": ["IBM Plex Mono", "monospace"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    boxShadow: {
+                        "soft": "0 4px 12px rgba(62, 52, 48, 0.06)",
+                        "lift": "0 8px 24px -4px rgba(62, 52, 48, 0.12)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for the dark terminal */
+        .terminal-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .terminal-scroll::-webkit-scrollbar-track {
+            background: #2C2420;
+        }
+        .terminal-scroll::-webkit-scrollbar-thumb {
+            background: #4a3e36;
+            border-radius: 4px;
+        }
+        .terminal-scroll::-webkit-scrollbar-thumb:hover {
+            background: #DDAA44;
+        }
+
+        /* CRT Scanline Effect */
+        .crt-overlay {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            ), linear-gradient(
+                90deg, 
+                rgba(255, 0, 0, 0.06), 
+                rgba(0, 255, 0, 0.02), 
+                rgba(0, 0, 255, 0.06)
+            );
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+        
+        .cursor-blink {
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Dot Grid Background for main canvas area */
+        .dot-grid {
+            background-image: radial-gradient(#D6D1CC 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+    </style>
+</head>
+<body class="bg-ceramic font-body text-espresso h-screen flex flex-col overflow-hidden dot-grid">
+<!-- HEADER / TOP BAR (Simplified for context) -->
+<header class="h-16 border-b border-[#D6D1CC] bg-plastic/80 backdrop-blur-sm flex items-center justify-between px-6 z-20 shadow-sm relative">
+<div class="flex items-center gap-4">
+<div class="w-8 h-8 bg-espresso rounded-lg flex items-center justify-center text-ceramic font-display font-bold">C</div>
+<h1 class="font-display font-bold text-lg tracking-tight">Ceramic Future Workflows</h1>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-tungsten text-sm font-mono">PROJECT_001.CFW</span>
+<div class="w-2 h-2 rounded-full bg-signal-green shadow-[0_0_8px_#6B9E78]"></div>
+</div>
+</header>
+<!-- MAIN CANVAS AREA (Placeholder Context) -->
+<main class="flex-1 relative flex items-center justify-center p-10">
+<!-- Abstract representation of nodes to give context to the terminal below -->
+<div class="absolute inset-0 flex items-center justify-center opacity-40 pointer-events-none">
+<div class="w-[600px] h-[400px] border-2 border-dashed border-[#D6D1CC] rounded-3xl flex items-center justify-center">
+<span class="text-tungsten font-display text-xl">CANVAS AREA</span>
+</div>
+</div>
+<!-- Floating Action Button (The "Run" Button mentioned in PRD) -->
+<div class="absolute bottom-32 left-1/2 -translate-x-1/2 z-10">
+<div class="flex items-center gap-4 p-2 bg-plastic rounded-full border border-[#D6D1CC] shadow-lift">
+<button class="w-12 h-12 rounded-full bg-primary hover:bg-[#c99a3c] text-espresso-dark flex items-center justify-center shadow-md active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[28px]">play_arrow</span>
+</button>
+</div>
+</div>
+</main>
+<!-- TERMINAL READOUT (THE LOG) - DRAWER COMPONENT -->
+<!-- 
+      State: Expanded (h-[300px]) 
+      Change height to h-[32px] to simulate collapsed state.
+    -->
+<section class="group fixed bottom-0 left-0 right-0 z-50 flex flex-col transition-all duration-300 ease-in-out h-[300px] shadow-[0_-4px_20px_rgba(0,0,0,0.15)] bg-espresso-dark font-mono text-sm border-t border-espresso/20">
+<!-- DRAWER HANDLE / HEADER BAR -->
+<div class="h-10 min-h-[40px] bg-[#362e2a] flex items-center justify-between px-4 cursor-pointer hover:bg-[#3f3632] transition-colors border-b border-[#4a3e36] select-none">
+<div class="flex items-center gap-3">
+<button class="text-tungsten hover:text-primary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">expand_more</span>
+</button>
+<div class="flex items-center gap-2">
+<span class="text-tungsten text-xs font-bold tracking-wider">SYSTEM LOG // TERMINAL 01</span>
+<!-- Live indicator pulse -->
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse ml-1"></span>
+</div>
+</div>
+<!-- COLLAPSED PREVIEW (Only visible when parent height is small in real JS implementation, here hidden for expanded demo) -->
+<div class="hidden flex-1 px-4 text-xs text-ceramic/60 truncate opacity-0 group-[.h-[40px]]:opacity-100 group-[.h-[40px]]:block transition-opacity">
+               [14:02:48] [ERROR] Connection timeout on node #44.
+            </div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-1.5 px-2 py-0.5 rounded text-tungsten hover:text-ceramic hover:bg-white/5 transition-colors text-xs font-medium">
+<span class="material-symbols-outlined text-[14px]">delete</span>
+                    CLEAR
+                </button>
+<button class="flex items-center gap-1.5 px-2 py-0.5 rounded text-tungsten hover:text-ceramic hover:bg-white/5 transition-colors text-xs font-medium">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+                    COPY
+                </button>
+</div>
+</div>
+<!-- TERMINAL CONTENT AREA -->
+<div class="relative flex-1 bg-espresso-dark overflow-hidden flex flex-col">
+<!-- Scanline Overlay -->
+<div class="crt-overlay absolute inset-0 z-10 opacity-30 pointer-events-none"></div>
+<!-- Scrollable Logs -->
+<div class="flex-1 overflow-y-auto p-4 terminal-scroll space-y-1.5 font-mono text-[13px] leading-relaxed relative z-0">
+<!-- Log Entry: System Init -->
+<div class="flex gap-3 hover:bg-white/5 p-0.5 -mx-0.5 rounded px-1 transition-colors">
+<span class="text-tungsten select-none">[14:02:41]</span>
+<span class="text-primary font-bold">[SYSTEM]</span>
+<span class="text-ceramic/90">Initializing workflow engine v2.4.0...</span>
+</div>
+<!-- Log Entry: Agent Action -->
+<div class="flex gap-3 hover:bg-white/5 p-0.5 -mx-0.5 rounded px-1 transition-colors">
+<span class="text-tungsten select-none">[14:02:41]</span>
+<span class="text-primary font-bold">[ORCHESTRATOR]</span>
+<span class="text-ceramic/90">Loading context from 'Project_Alpha_Specs.json'</span>
+</div>
+<!-- Log Entry: Connection Success -->
+<div class="flex gap-3 hover:bg-white/5 p-0.5 -mx-0.5 rounded px-1 transition-colors">
+<span class="text-tungsten select-none">[14:02:42]</span>
+<span class="text-primary font-bold">[SEARCH_AGENT]</span>
+<span class="text-signal-green">Connected to vector database (ms-east-1).</span>
+</div>
+<!-- Log Entry: Processing -->
+<div class="flex gap-3 hover:bg-white/5 p-0.5 -mx-0.5 rounded px-1 transition-colors">
+<span class="text-tungsten select-none">[14:02:44]</span>
+<span class="text-primary font-bold">[SEARCH_AGENT]</span>
+<span class="text-ceramic/90">Querying: "Syd Mead Architecture"</span>
+</div>
+<!-- Log Entry: Complex Output -->
+<div class="flex gap-3 hover:bg-white/5 p-0.5 -mx-0.5 rounded px-1 transition-colors bg-white/[0.02]">
+<span class="text-tungsten select-none">[14:02:45]</span>
+<span class="text-primary font-bold">[SUMMARIZER]</span>
+<span class="text-ceramic/90">Received 4 chunks. <span class="text-tungsten italic">// Tokens: 4024 // Est. Cost: $0.02</span></span>
+</div>
+<!-- Log Entry: Processing Streaming -->
+<div class="flex gap-3 hover:bg-white/5 p-0.5 -mx-0.5 rounded px-1 transition-colors">
+<span class="text-tungsten select-none">[14:02:46]</span>
+<span class="text-primary font-bold">[SUMMARIZER]</span>
+<span class="text-ceramic/90">Processing synthesis...</span>
+</div>
+<!-- Log Entry: Error -->
+<div class="flex gap-3 hover:bg-signal-red/10 p-0.5 -mx-0.5 rounded px-1 transition-colors border-l-2 border-signal-red bg-signal-red/5">
+<span class="text-tungsten select-none">[14:02:48]</span>
+<span class="text-signal-red font-bold">[ERROR]</span>
+<span class="text-signal-red/90">Connection timeout on node #44. Retrying (1/3)...</span>
+</div>
+<!-- Log Entry: Recovery -->
+<div class="flex gap-3 hover:bg-white/5 p-0.5 -mx-0.5 rounded px-1 transition-colors">
+<span class="text-tungsten select-none">[14:02:50]</span>
+<span class="text-primary font-bold">[SYSTEM]</span>
+<span class="text-ceramic/90">Node #44 re-established. Resuming flow.</span>
+</div>
+<!-- Active Line -->
+<div class="flex gap-3 p-0.5 -mx-0.5 px-1 animate-pulse">
+<span class="text-tungsten select-none">[14:02:52]</span>
+<span class="text-primary font-bold">[OUTPUT_GEN]</span>
+<span class="text-ceramic/90">Finalizing render pass<span class="cursor-blink">_</span></span>
+</div>
+</div>
+<!-- Status Footer inside Terminal -->
+<div class="h-8 min-h-[32px] bg-[#251e1b] border-t border-[#4a3e36] flex items-center justify-between px-4 text-[11px] text-tungsten z-20">
+<div class="flex items-center gap-4">
+<span>MEM: 45MB</span>
+<span>CPU: 12%</span>
+<span>UPTIME: 04:12:33</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-1.5 h-1.5 rounded-full bg-signal-green"></div>
+<span class="text-signal-green">ONLINE</span>
+</div>
+</div>
+</div>
+</section>
+</body></html>
