@@ -12,21 +12,21 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <div className="relative">
         <div
           className={cn(
-            'group relative w-full h-12 bg-ceramic rounded-xl border border-transparent',
-            'shadow-inset-slot flex items-center px-4 transition-all duration-200',
-            'focus-within:border-amber focus-within:shadow-inset',
+            'group relative w-full h-12 bg-white/5 rounded border border-interface-border',
+            'flex items-center px-4 transition-all duration-200',
+            'focus-within:border-primary focus-within:shadow-[0_0_10px_rgba(244,175,37,0.2)]',
             error && 'border-signal-red'
           )}
         >
           {icon && (
-            <span className="material-symbols-outlined text-tungsten group-focus-within:text-amber transition-colors mr-2">
+            <span className="material-symbols-outlined text-accent-tan group-focus-within:text-primary transition-colors mr-2">
               {icon}
             </span>
           )}
           <input
             className={cn(
-              'w-full bg-transparent border-none focus:ring-0 text-espresso',
-              'placeholder-tungsten/50 font-body text-sm h-full',
+              'w-full bg-transparent border-none focus:ring-0 text-white',
+              'placeholder-accent-tan/50 font-mono text-sm h-full',
               className
             )}
             ref={ref}
@@ -34,7 +34,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           />
         </div>
         {error && (
-          <p className="mt-1 text-xs text-signal-red">{error}</p>
+          <p className="mt-1 text-xs text-signal-red font-mono">{error}</p>
         )}
       </div>
     )

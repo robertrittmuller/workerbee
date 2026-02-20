@@ -11,6 +11,9 @@ export default {
         primary: '#f4af25', // WorkerBee Amber
         'accent-tan': '#d2c5ae',
         'bg-deep': '#0d0e12', // Indigo-tinted charcoal
+        'bg-dark': '#1a1c24', // Dark grey background
+        'bg-sidebar': '#242830', // Lighter grey for sidebars
+        'bg-darker': '#0d0e12', // Even darker for header/footer
         'interface-border': '#2a2d37',
         // Keep some of the old colors for compatibility
         ceramic: {

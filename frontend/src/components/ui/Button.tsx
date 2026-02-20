@@ -8,14 +8,14 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', children, ...props }, ref) => {
-    const baseStyles = 'font-display font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
+    const baseStyles = 'font-mono font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
     
     const variants = {
-      primary: 'bg-amber text-espresso-dark rounded-xl shadow-pneumatic active:shadow-pneumatic-pressed active:translate-y-[1px] hover:brightness-110',
-      secondary: 'bg-espresso text-plastic rounded-xl hover:bg-espresso-dark active:scale-[0.98]',
-      outline: 'border border-tungsten/30 text-espresso rounded-xl hover:bg-ceramic hover:border-tungsten/50',
-      ghost: 'text-tungsten hover:text-espresso hover:bg-ceramic rounded-xl',
-      icon: 'text-tungsten hover:text-espresso hover:bg-ceramic rounded-xl',
+      primary: 'bg-primary text-bg-deep rounded crt-button-glow hover:brightness-110 active:translate-y-[1px]',
+      secondary: 'bg-interface-border text-white rounded hover:bg-interface-border/80 active:scale-[0.98]',
+      outline: 'border border-interface-border text-accent-tan rounded hover:bg-interface-border/30 hover:text-white',
+      ghost: 'text-accent-tan hover:text-white hover:bg-interface-border/30 rounded',
+      icon: 'text-accent-tan hover:text-white hover:bg-interface-border/30 rounded',
     }
     
     const sizes = {
