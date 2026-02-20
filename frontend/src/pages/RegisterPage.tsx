@@ -3,9 +3,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import Button from '../components/Button'
 import Input from '../components/Input'
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [fullName, setFullName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
@@ -13,10 +15,21 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/v1/auth/login', {
+      const response = await fetch('/api/v1/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -24,23 +37,19 @@ export default function LoginPage() {
         body: JSON.stringify({
           email,
           password,
+          full_name: fullName,
         }),
       })
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.detail || 'Login failed')
+        throw new Error(data.detail || 'Registration failed')
       }
 
-      const data = await response.json()
-      // Store tokens in localStorage
-      localStorage.setItem('access_token', data.access_token)
-      localStorage.setItem('refresh_token', data.refresh_token)
-      
-      // Redirect to dashboard
-      navigate('/dashboard')
+      // Registration successful, redirect to login
+      navigate('/login', { state: { message: 'Registration successful! Please sign in.' } })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
+      setError(err instanceof Error ? err.message : 'Registration failed')
     } finally {
       setIsLoading(false)
     }
@@ -65,11 +74,11 @@ export default function LoginPage() {
               <span className="text-2xl font-display font-bold text-ceramic">WorkerBee</span>
             </div>
             <h1 className="text-4xl xl:text-5xl font-display font-bold text-ceramic mb-4">
-              Automate your work with AI agents
+              Start automating today
             </h1>
             <p className="text-lg text-ceramic/70 max-w-md">
-              Create visual workflows that connect your files to powerful AI agents. 
-              Get real work done without writing code.
+              Join thousands of users who are automating their work with AI agents. 
+              No coding required.
             </p>
           </div>
           <div className="space-y-4">
@@ -79,7 +88,7 @@ export default function LoginPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span>Upload PDFs, Excel, Word documents and more</span>
+              <span>Free to get started with essential features</span>
             </div>
             <div className="flex items-center gap-3 text-ceramic/80">
               <div className="w-8 h-8 bg-amber/20 rounded-lg flex items-center justify-center">
@@ -87,7 +96,7 @@ export default function LoginPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span>Connect inputs to AI agents visually</span>
+              <span>Set up your first workflow in minutes</span>
             </div>
             <div className="flex items-center gap-3 text-ceramic/80">
               <div className="w-8 h-8 bg-amber/20 rounded-lg flex items-center justify-center">
@@ -95,13 +104,13 @@ export default function LoginPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span>Export results in multiple formats</span>
+              <span>Connect with popular AI models and tools</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Right Panel - Login Form */}
+      {/* Right Panel - Register Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-white">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
@@ -113,8 +122,8 @@ export default function LoginPage() {
               </div>
               <span className="text-xl font-display font-bold text-espresso">WorkerBee</span>
             </div>
-            <h2 className="text-3xl font-display font-bold text-espresso mb-2">Welcome back</h2>
-            <p className="text-espresso/60">Sign in to your account to continue</p>
+            <h2 className="text-3xl font-display font-bold text-espresso mb-2">Create your account</h2>
+            <p className="text-espresso/60">Get started with WorkerBee for free</p>
           </div>
 
           {error && (
@@ -123,7 +132,15 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Input
+              label="Full Name"
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="John Doe"
+              required
+            />
             <Input
               label="Email"
               type="email"
@@ -137,29 +154,43 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="At least 8 characters"
+              required
+            />
+            <Input
+              label="Confirm Password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm your password"
               required
             />
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 rounded border-espresso/20 text-amber focus:ring-amber"
-                />
-                <span className="text-sm text-espresso/70">Remember me</span>
+            <div className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                id="terms"
+                className="mt-1 w-4 h-4 rounded border-espresso/20 text-amber focus:ring-amber"
+                required
+              />
+              <label htmlFor="terms" className="text-sm text-espresso/70">
+                I agree to the{' '}
+                <a href="#" className="text-amber hover:text-amber/80 font-medium">
+                  Terms of Service
+                </a>{' '}
+                and{' '}
+                <a href="#" className="text-amber hover:text-amber/80 font-medium">
+                  Privacy Policy
+                </a>
               </label>
-              <a href="#" className="text-sm text-amber hover:text-amber/80 font-medium">
-                Forgot password?
-              </a>
             </div>
 
             <Button type="submit" fullWidth isLoading={isLoading}>
-              Sign in
+              Create account
             </Button>
           </form>
 
-          <div className="mt-8">
+          <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-espresso/10" />
@@ -189,9 +220,9 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-8 text-center text-sm text-espresso/60">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-amber hover:text-amber/80 font-medium">
-              Sign up for free
+            Already have an account?{' '}
+            <Link to="/login" className="text-amber hover:text-amber/80 font-medium">
+              Sign in
             </Link>
           </p>
         </div>
