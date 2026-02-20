@@ -8,6 +8,11 @@ export default {
   theme: {
     extend: {
       colors: {
+        primary: '#f4af25', // WorkerBee Amber
+        'accent-tan': '#d2c5ae',
+        'bg-deep': '#0d0e12', // Indigo-tinted charcoal
+        'interface-border': '#2a2d37',
+        // Keep some of the old colors for compatibility
         ceramic: {
           DEFAULT: '#EBE8E3',
           dark: '#F7F5F0',
@@ -31,9 +36,8 @@ export default {
         },
       },
       fontFamily: {
-        display: ['Space Grotesk', 'sans-serif'],
-        body: ['IBM Plex Sans', 'sans-serif'],
-        mono: ['IBM Plex Mono', 'monospace'],
+        mono: ["'JetBrains Mono'", 'monospace'],
+        sans: ["'Inter'", 'sans-serif'],
       },
       boxShadow: {
         lift: '0 8px 24px -4px rgba(62, 52, 48, 0.12), 0 2px 6px -1px rgba(62, 52, 48, 0.04)',
@@ -44,6 +48,7 @@ export default {
         glow: '0 0 12px rgba(221, 170, 68, 0.4)',
         pneumatic: '0 4px 0 #b88a32, 0 8px 16px rgba(228, 173, 63, 0.4)',
         'pneumatic-pressed': 'inset 0 2px 4px rgba(0, 0, 0, 0.2)',
+        'crt-glow': '0 0 15px rgba(244, 175, 37, 0.4), inset 0 0 5px rgba(244, 175, 37, 0.4)',
       },
       borderRadius: {
         sm: '8px',

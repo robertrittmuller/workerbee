@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import Button from '../components/Button'
-import Input from '../components/Input'
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -56,177 +54,241 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-espresso to-espresso/90 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-amber rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-ceramic rounded-full blur-3xl" />
-        </div>
-        <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20">
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-amber rounded-xl flex items-center justify-center">
-                <svg className="w-7 h-7 text-espresso" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-              </div>
-              <span className="text-2xl font-display font-bold text-ceramic">WorkerBee</span>
-            </div>
-            <h1 className="text-4xl xl:text-5xl font-display font-bold text-ceramic mb-4">
-              Start automating today
-            </h1>
-            <p className="text-lg text-ceramic/70 max-w-md">
-              Join thousands of users who are automating their work with AI agents. 
-              No coding required.
-            </p>
-          </div>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 text-ceramic/80">
-              <div className="w-8 h-8 bg-amber/20 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-amber" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <span>Free to get started with essential features</span>
-            </div>
-            <div className="flex items-center gap-3 text-ceramic/80">
-              <div className="w-8 h-8 bg-amber/20 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-amber" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <span>Set up your first workflow in minutes</span>
-            </div>
-            <div className="flex items-center gap-3 text-ceramic/80">
-              <div className="w-8 h-8 bg-amber/20 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-amber" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <span>Connect with popular AI models and tools</span>
-            </div>
-          </div>
+    <div className="min-h-screen flex flex-col font-sans text-white">
+      {/* Immersive Background */}
+      <div className="immersive-bg">
+        <div className="data-grid-3d"></div>
+        <div className="wireframe-landscape"></div>
+        <div className="data-pathways"></div>
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
+          <div className="absolute top-1/4 left-0 w-full h-[1px] bg-primary/30"></div>
+          <div className="absolute top-3/4 left-0 w-full h-[1px] bg-primary/30"></div>
+          <div className="absolute left-1/4 top-0 h-full w-[1px] bg-primary/30"></div>
+          <div className="absolute left-3/4 top-0 h-full w-[1px] bg-primary/30"></div>
         </div>
       </div>
 
-      {/* Right Panel - Register Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-white">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="lg:hidden flex items-center justify-center gap-2 mb-6">
-              <div className="w-10 h-10 bg-amber rounded-xl flex items-center justify-center">
-                <svg className="w-6 h-6 text-espresso" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-              </div>
-              <span className="text-xl font-display font-bold text-espresso">WorkerBee</span>
-            </div>
-            <h2 className="text-3xl font-display font-bold text-espresso mb-2">Create your account</h2>
-            <p className="text-espresso/60">Get started with WorkerBee for free</p>
+      {/* Navigation */}
+      <nav className="fixed top-0 w-full h-16 z-50 bg-bg-deep/40 flex items-center px-6 lg:px-12 justify-between backdrop-blur-md border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="text-primary flex items-center justify-center border border-primary/50 p-1">
+            <span className="material-symbols-outlined text-xl font-bold">grid_view</span>
           </div>
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <Input
-              label="Full Name"
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="John Doe"
-              required
-            />
-            <Input
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-            />
-            <Input
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
-              required
-            />
-            <Input
-              label="Confirm Password"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm your password"
-              required
-            />
-
-            <div className="flex items-start gap-2">
-              <input
-                type="checkbox"
-                id="terms"
-                className="mt-1 w-4 h-4 rounded border-espresso/20 text-amber focus:ring-amber"
-                required
-              />
-              <label htmlFor="terms" className="text-sm text-espresso/70">
-                I agree to the{' '}
-                <a href="#" className="text-amber hover:text-amber/80 font-medium">
-                  Terms of Service
-                </a>{' '}
-                and{' '}
-                <a href="#" className="text-amber hover:text-amber/80 font-medium">
-                  Privacy Policy
-                </a>
-              </label>
-            </div>
-
-            <Button type="submit" fullWidth isLoading={isLoading}>
-              Create account
-            </Button>
-          </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-espresso/10" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-espresso/50">Or continue with</span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-4">
-              <button className="flex items-center justify-center gap-2 px-4 py-3 border border-espresso/10 rounded-xl hover:bg-ceramic/50 transition-colors">
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                  <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                </svg>
-                <span className="text-sm font-medium text-espresso/80">Google</span>
-              </button>
-              <button className="flex items-center justify-center gap-2 px-4 py-3 border border-espresso/10 rounded-xl hover:bg-ceramic/50 transition-colors">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                </svg>
-                <span className="text-sm font-medium text-espresso/80">GitHub</span>
-              </button>
-            </div>
-          </div>
-
-          <p className="mt-8 text-center text-sm text-espresso/60">
-            Already have an account?{' '}
-            <Link to="/login" className="text-amber hover:text-amber/80 font-medium">
-              Sign in
-            </Link>
-          </p>
+          <span className="text-xl font-mono font-extrabold tracking-tighter uppercase crt-glow">WorkerBee <span className="text-accent-tan font-normal text-xs">[AUTH-02]</span></span>
         </div>
-      </div>
+        <div className="hidden md:flex items-center gap-8 font-mono text-[10px] uppercase tracking-[0.3em] text-accent-tan/60">
+          <span className="flex items-center gap-2">// SECURE_PERIMETER_ACTIVE</span>
+          <span className="flex items-center gap-2">// NODE: DC-04_CENTRAL</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <button className="font-mono text-[10px] uppercase tracking-widest text-accent-tan hover:text-white transition-colors border border-accent-tan/20 px-3 py-1 bg-white/5">Help</button>
+        </div>
+      </nav>
+
+      {/* Main Content - Centered */}
+      <main className="flex-grow relative z-10 flex items-center justify-center p-6 pt-24">
+        <div className="w-full max-w-lg flex flex-col items-center gap-6">
+          {/* Register Form Container */}
+          <div className="w-full wireframe-box bg-bg-deep/90 backdrop-blur-xl p-10 space-y-8 floating-console">
+            {/* Icon Header */}
+            <div className="absolute -top-12 left-0 right-0 flex justify-center">
+              <div className="flex flex-col items-center">
+                <div className="w-20 h-20 wireframe-box bg-bg-deep/90 flex items-center justify-center mb-2 border-primary/30">
+                  <span className="material-symbols-outlined text-primary text-3xl crt-glow">person_add</span>
+                </div>
+                <div className="h-12 w-[1px] bg-primary/30"></div>
+              </div>
+            </div>
+
+            {/* Title Section */}
+            <div className="text-center space-y-4 pt-4">
+              <div className="inline-flex items-center gap-3 px-4 py-1.5 border border-interface-border bg-white/5 font-mono text-[10px] uppercase tracking-[0.2em] text-accent-tan">
+                <span className="w-2 h-2 bg-primary animate-pulse inline-block"></span>
+                NEW_USER_REGISTRATION // TERMINAL: PRT-99
+              </div>
+              <h1 className="text-3xl font-mono font-extrabold tracking-tight text-white uppercase crt-glow leading-none">
+                Join the Hive
+              </h1>
+              <div className="flex items-center justify-center gap-4 opacity-30">
+                <div className="h-[1px] w-12 bg-accent-tan"></div>
+                <span className="font-mono text-[8px] uppercase tracking-[0.4em]">Identity Creation</span>
+                <div className="h-[1px] w-12 bg-accent-tan"></div>
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+                <p className="text-red-400 font-mono text-xs text-center">{error}</p>
+              </div>
+            )}
+
+            {/* Register Form */}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Full Name Field */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-end">
+                  <label className="block font-mono text-[10px] text-accent-tan uppercase tracking-[0.2em]">Full Name</label>
+                  <span className="font-mono text-[8px] text-accent-tan/30 uppercase">ID_FIELD_NAME</span>
+                </div>
+                <div className="relative group">
+                  <input 
+                    className="w-full bg-bg-deep/50 border border-interface-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-white font-mono text-sm px-5 py-4 outline-none transition-all placeholder:text-white/10"
+                    placeholder="USER_FULL_NAME"
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-interface-border group-focus-within:text-primary/50 transition-colors">
+                    <span className="material-symbols-outlined text-lg">badge</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Email Field */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-end">
+                  <label className="block font-mono text-[10px] text-accent-tan uppercase tracking-[0.2em]">Email</label>
+                  <span className="font-mono text-[8px] text-accent-tan/30 uppercase">ID_FIELD_EMAIL</span>
+                </div>
+                <div className="relative group">
+                  <input 
+                    className="w-full bg-bg-deep/50 border border-interface-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-white font-mono text-sm px-5 py-4 outline-none transition-all placeholder:text-white/10"
+                    placeholder="USER@DOMAIN.COM"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-interface-border group-focus-within:text-primary/50 transition-colors">
+                    <span className="material-symbols-outlined text-lg">email</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Password Field */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-end">
+                  <label className="block font-mono text-[10px] text-accent-tan uppercase tracking-[0.2em]">Password</label>
+                  <span className="font-mono text-[8px] text-accent-tan/30 uppercase">KEY_FIELD_SECURE</span>
+                </div>
+                <div className="relative group">
+                  <input 
+                    className="w-full bg-bg-deep/50 border border-interface-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-white font-mono text-sm px-5 py-4 outline-none transition-all placeholder:text-white/10"
+                    placeholder="••••••••••••"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-interface-border group-focus-within:text-primary/50 transition-colors">
+                    <span className="material-symbols-outlined text-lg">key</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Confirm Password Field */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-end">
+                  <label className="block font-mono text-[10px] text-accent-tan uppercase tracking-[0.2em]">Confirm Password</label>
+                  <span className="font-mono text-[8px] text-accent-tan/30 uppercase">KEY_FIELD_VERIFY</span>
+                </div>
+                <div className="relative group">
+                  <input 
+                    className="w-full bg-bg-deep/50 border border-interface-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-white font-mono text-sm px-5 py-4 outline-none transition-all placeholder:text-white/10"
+                    placeholder="••••••••••••"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-interface-border group-focus-within:text-primary/50 transition-colors">
+                    <span className="material-symbols-outlined text-lg">lock</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Terms Checkbox */}
+              <div className="flex items-start gap-3 pt-2">
+                <input
+                  type="checkbox"
+                  id="terms"
+                  className="mt-1 w-4 h-4 rounded border-interface-border bg-bg-deep/50 text-primary focus:ring-primary/20 focus:ring-offset-0 cursor-pointer"
+                  required
+                />
+                <label htmlFor="terms" className="text-xs text-accent-tan/70 font-mono uppercase tracking-wide">
+                  I agree to the{' '}
+                  <a href="#" className="text-primary hover:underline">
+                    Terms of Service
+                  </a>{' '}
+                  and{' '}
+                  <a href="#" className="text-primary hover:underline">
+                    Privacy Protocol
+                  </a>
+                </label>
+              </div>
+
+              {/* Submit Button */}
+              <div className="pt-4">
+                <button 
+                  className="w-full bg-primary text-bg-deep px-8 py-4 font-mono font-extrabold text-sm uppercase crt-button-glow flex items-center justify-center gap-3 hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  type="submit"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="material-symbols-outlined text-xl animate-spin">sync</span>
+                      PROCESSING
+                    </>
+                  ) : (
+                    <>
+                      Create Account <span className="material-symbols-outlined text-xl">arrow_forward</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+            {/* Links Section */}
+            <div className="pt-6 border-t border-interface-border/50">
+              <div className="flex justify-center gap-6 text-[10px] font-mono uppercase tracking-widest">
+                <Link to="/login" className="text-accent-tan/70 hover:text-primary transition-colors flex items-center gap-2 group">
+                  <span className="material-symbols-outlined text-[14px] group-hover:-translate-x-1 transition-transform">login</span> Existing User Login
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Status */}
+          <div className="w-full flex justify-between items-center font-mono text-[9px] text-accent-tan uppercase tracking-[0.3em] opacity-40">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[10px]">sensors</span>
+              Secure_Connection: Established
+            </div>
+            <div className="flex items-center gap-2">
+              Enc_Status: AES_256_ACTIVE
+              <span className="material-symbols-outlined text-[10px]">verified_user</span>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="relative z-10 py-6 px-6 lg:px-12 border-t border-white/5 font-mono text-xs bg-bg-deep/60 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-accent-tan/40 text-[9px] uppercase tracking-[0.2em]">
+          <div className="flex items-center gap-4">
+            <p>© 2024 WorkerBee Technologies Inc. [SYSTEM_INTERFACE_STABLE]</p>
+            <span className="h-3 w-[1px] bg-white/10 hidden md:block"></span>
+            <p className="hidden md:block">LOC: SUB-LEVEL_09</p>
+          </div>
+          <div className="flex gap-8">
+            <a className="hover:text-white transition-colors" href="#">Terms of Service</a>
+            <a className="hover:text-white transition-colors" href="#">Privacy Protocol</a>
+            <a className="hover:text-white transition-colors" href="#">Security Audit</a>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
