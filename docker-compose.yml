@@ -1,0 +1,137 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: workerbee-postgres
+    environment:
+      POSTGRES_USER: workerbee
+      POSTGRES_PASSWORD: workerbee_secret
+      POSTGRES_DB: workerbee
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U workerbee"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - workerbee-network
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: workerbee-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin_secret
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - workerbee-network
+
+  # Redis for caching and task queues
+  redis:
+    image: redis:7-alpine
+    container_name: workerbee-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - workerbee-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: workerbee-backend
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://workerbee:workerbee_secret@postgres:5432/workerbee
+      - REDIS_URL=redis://redis:6379/0
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin_secret
+      - SECRET_KEY=your-super-secret-key-change-in-production
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - ./backend:/app
+      - backend_uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - workerbee-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Frontend Development Server
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: workerbee-frontend
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - workerbee-network
+
+  # Agent Sandbox Container (for isolated code execution)
+  sandbox:
+    build:
+      context: ./sandbox
+      dockerfile: Dockerfile
+    container_name: workerbee-sandbox
+    privileged: false
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: false
+    volumes:
+      - sandbox_tmp:/tmp
+      - sandbox_workspace:/workspace
+    networks:
+      - workerbee-network
+    command: sleep infinity
+
+volumes:
+  postgres_data:
+  minio_data:
+  redis_data:
+  backend_uploads:
+  sandbox_tmp:
+  sandbox_workspace:
+
+networks:
+  workerbee-network:
+    driver: bridge

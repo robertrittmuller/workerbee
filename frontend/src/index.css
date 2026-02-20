@@ -1,0 +1,168 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom base styles */
+@layer base {
+  html {
+    @apply antialiased;
+  }
+  
+  body {
+    @apply bg-ceramic text-espresso font-sans;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-ceramic/50 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-espresso/20 rounded-full hover:bg-espresso/30;
+  }
+}
+
+/* Custom component styles */
+@layer components {
+  /* Card styles */
+  .card {
+    @apply bg-white rounded-2xl border border-espresso/5 shadow-sm;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:border-amber/20;
+  }
+  
+  /* Node styles for ReactFlow */
+  .workflow-node {
+    @apply bg-white rounded-xl border-2 border-espresso/10 shadow-md min-w-[200px];
+  }
+  
+  .workflow-node.selected {
+    @apply border-amber shadow-lg;
+  }
+  
+  .workflow-node-header {
+    @apply px-4 py-2 border-b border-espresso/5 font-medium text-sm;
+  }
+  
+  .workflow-node-body {
+    @apply px-4 py-3;
+  }
+  
+  /* Input node */
+  .node-input {
+    @apply border-l-4 border-l-blue-400;
+  }
+  
+  /* Agent node */
+  .node-agent {
+    @apply border-l-4 border-l-amber;
+  }
+  
+  /* Output node */
+  .node-output {
+    @apply border-l-4 border-l-green-400;
+  }
+  
+  /* Status badges */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-pending {
+    @apply bg-espresso/10 text-espresso/70;
+  }
+  
+  .badge-running {
+    @apply bg-amber/20 text-amber-dark;
+  }
+  
+  .badge-completed {
+    @apply bg-green-100 text-green-700;
+  }
+  
+  .badge-failed {
+    @apply bg-red-100 text-red-700;
+  }
+  
+  /* Terminal styles */
+  .terminal {
+    @apply bg-espresso text-ceramic font-mono text-sm p-4 rounded-xl overflow-auto;
+  }
+  
+  .terminal-line {
+    @apply py-0.5;
+  }
+  
+  .terminal-prompt {
+    @apply text-amber;
+  }
+  
+  .terminal-output {
+    @apply text-ceramic/80;
+  }
+  
+  .terminal-error {
+    @apply text-red-400;
+  }
+}
+
+/* Custom utilities */
+@layer utilities {
+  /* Glass effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-lg;
+  }
+  
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-amber to-amber-dark;
+  }
+  
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-pulse-soft {
+    animation: pulseSoft 2s ease-in-out infinite;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseSoft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
