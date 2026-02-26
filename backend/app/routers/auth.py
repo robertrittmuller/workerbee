@@ -5,7 +5,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import (
@@ -70,8 +70,12 @@ async def register(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> User:
     """Register a new user."""
+    normalized_email = user_data.email.strip().lower()
+
     # Check if user already exists
-    result = await db.execute(select(User).where(User.email == user_data.email))
+    result = await db.execute(
+        select(User).where(func.lower(User.email) == normalized_email)
+    )
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -80,7 +84,7 @@ async def register(
     
     # Create new user
     user = User(
-        email=user_data.email,
+        email=normalized_email,
         password_hash=get_password_hash(user_data.password),
         full_name=user_data.full_name,
     )
@@ -96,8 +100,12 @@ async def login(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> dict:
     """Login and get access token."""
+    normalized_email = user_data.email.strip().lower()
+
     # Find user
-    result = await db.execute(select(User).where(User.email == user_data.email))
+    result = await db.execute(
+        select(User).where(func.lower(User.email) == normalized_email)
+    )
     user = result.scalar_one_or_none()
     
     if user is None or not verify_password(user_data.password, user.password_hash):

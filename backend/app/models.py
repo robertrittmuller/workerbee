@@ -11,6 +11,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -27,6 +28,8 @@ if TYPE_CHECKING:
         ExecutionLog,
         File,
         Output,
+        ResourceGroup,
+        ResourceGroupFile,
         Task,
         Workflow,
         WorkflowEdge,
@@ -66,6 +69,9 @@ class User(Base):
     )
     files: Mapped[list["File"]] = relationship(
         "File", back_populates="user", cascade="all, delete-orphan"
+    )
+    resource_groups: Mapped[list["ResourceGroup"]] = relationship(
+        "ResourceGroup", back_populates="user", cascade="all, delete-orphan"
     )
     outputs: Mapped[list["Output"]] = relationship(
         "Output", back_populates="user", cascade="all, delete-orphan"
@@ -199,6 +205,66 @@ class File(Base):
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="files")
+    resource_group_link: Mapped[Optional["ResourceGroupFile"]] = relationship(
+        "ResourceGroupFile", back_populates="file", uselist=False, cascade="all, delete-orphan"
+    )
+
+
+class ResourceGroup(Base):
+    """User-defined groups for organizing uploaded resources."""
+
+    __tablename__ = "resource_groups"
+    __table_args__ = (
+        UniqueConstraint("user_id", "name", name="uq_resource_groups_user_name"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    name: Mapped[str] = mapped_column(String(255))
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="resource_groups")
+    file_links: Mapped[list["ResourceGroupFile"]] = relationship(
+        "ResourceGroupFile",
+        back_populates="resource_group",
+        cascade="all, delete-orphan",
+    )
+
+
+class ResourceGroupFile(Base):
+    """Mapping between uploaded files and a resource group."""
+
+    __tablename__ = "resource_group_files"
+    __table_args__ = (
+        UniqueConstraint("file_id", name="uq_resource_group_files_file_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    resource_group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("resource_groups.id", ondelete="CASCADE")
+    )
+    file_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("files.id", ondelete="CASCADE")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    # Relationships
+    resource_group: Mapped["ResourceGroup"] = relationship(
+        "ResourceGroup", back_populates="file_links"
+    )
+    file: Mapped["File"] = relationship("File", back_populates="resource_group_link")
 
 
 class AgentType(Base):

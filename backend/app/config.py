@@ -47,16 +47,24 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
 
     # LLM Configuration
+    litellm_base_url: str = ""
+    litellm_api_key: str = ""
     litellm_master_key: str = ""
+    llm_available_models: str = "gpt-4o-mini,gpt-4o,claude-3-5-sonnet-20241022"
+    llm_default_model: str = "gpt-4o-mini"
     openai_api_key: str = ""
     anthropic_api_key: str = ""
 
     # Sandbox Configuration
     sandbox_image: str = "workerbee-sandbox:latest"
+    sandbox_api_base_url: str = "http://sandbox:9000"
+    sandbox_workspace_root: str = "/workspace"
     sandbox_timeout: int = 1800  # 30 minutes
+    sandbox_http_timeout: int = 120
     sandbox_max_memory: str = "4g"
     sandbox_max_cpu: str = "2"
     sandbox_max_disk: str = "10g"
+    sandbox_capability_cache_seconds: int = 300
 
     # File Upload
     max_file_size: int = 100 * 1024 * 1024  # 100MB
@@ -79,6 +87,11 @@ class Settings(BaseSettings):
     # Execution
     max_concurrent_executions: int = 3
     execution_timeout: int = 1800  # 30 minutes
+
+    @property
+    def parsed_llm_available_models(self) -> list[str]:
+        """Return configured available LLM models from CSV env input."""
+        return [model.strip() for model in self.llm_available_models.split(",") if model.strip()]
 
 
 @lru_cache

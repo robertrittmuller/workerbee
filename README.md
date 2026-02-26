@@ -1,11 +1,13 @@
 # WorkerBee
 
-WorkerBee is a visual AI agent platform that enables non-technical users to accomplish real-world work tasks. Users can create visual workflows by connecting input data (files) to AI agents, which process the data and produce outputs.
+WorkerBee is an AI agent management portal for creating, running, and governing agents that execute real-world work tasks. Agents are created from markdown template bundles and can be provisioned with attached file resources.
 
 ## Features
 
-- **Visual Workflow Builder**: Drag-and-drop interface using ReactFlow for creating workflows
+- **Agent Management Portal**: Create, run, and delete agents from a single management UI
+- **Markdown Agent Templates**: Build agents from reusable `.md` template bundles
 - **Multi-format Input Support**: Upload PDFs, Word documents, Excel spreadsheets, PowerPoint presentations, CSV files, and images
+- **Resource Attachments**: Attach uploaded resources directly to each agent
 - **AI Agent Integration**: Powered by LangGraph and liteLLM for multi-provider LLM access
 - **Sandboxed Code Execution**: Secure Python code execution in isolated Docker containers
 - **Multiple Output Formats**: Generate Word documents, Excel files, PDFs, CSV, and more
@@ -17,11 +19,11 @@ WorkerBee is a visual AI agent platform that enables non-technical users to acco
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Frontend (React)                          │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
-│  │  Dashboard  │  │  Workflow   │  │     Settings/Profile    │  │
-│  │             │  │  Editor     │  │                         │  │
+│  │  Dashboard  │  │   Agents    │  │     Settings/Profile    │  │
+│  │             │  │  Management │  │                         │  │
 │  └─────────────┘  └─────────────┘  └─────────────────────────┘  │
 │                           │                                      │
-│                    ReactFlow + Zustand                          │
+│                 React + TanStack Query                          │
 └─────────────────────────────────────────────────────────────────┘
                             │
                             ▼
@@ -49,8 +51,6 @@ WorkerBee is a visual AI agent platform that enables non-technical users to acco
 - **React 18** with TypeScript
 - **Vite** for fast development
 - **TailwindCSS** for styling
-- **ReactFlow** for visual workflow builder
-- **Zustand** for state management
 - **TanStack Query** for data fetching
 
 ### Backend
@@ -64,6 +64,11 @@ WorkerBee is a visual AI agent platform that enables non-technical users to acco
 ### Infrastructure
 - **Docker Compose** for local development
 - **Kubernetes/Helm** for production deployment
+
+### Sandbox Runtime Service
+- The backend now talks to a sandbox **HTTP service** (`SANDBOX_API_BASE_URL`) instead of `docker exec`.
+- This lets sandbox pods run behind a Kubernetes `Service` with multiple replicas for horizontal scaling.
+- Each execute call is self-contained (input files + current output state are sent in the request), so calls can be load-balanced across replicas.
 
 ## Getting Started
 
@@ -125,7 +130,6 @@ workerbee/
 │   ├── src/
 │   │   ├── components/       # Reusable UI components
 │   │   ├── pages/            # Page components
-│   │   ├── store/            # Zustand stores
 │   │   ├── lib/              # API client and utilities
 │   │   └── hooks/            # Custom React hooks
 │   ├── public/
@@ -157,17 +161,13 @@ workerbee/
 - `POST /api/v1/auth/refresh` - Refresh access token
 - `GET /api/v1/auth/me` - Get current user
 
-### Workflows
-- `GET /api/v1/workflows` - List workflows
-- `POST /api/v1/workflows` - Create workflow
-- `GET /api/v1/workflows/{id}` - Get workflow
-- `PUT /api/v1/workflows/{id}` - Update workflow
-- `DELETE /api/v1/workflows/{id}` - Delete workflow
-
 ### Agents
 - `GET /api/v1/agents` - List agents
-- `POST /api/v1/agents` - Create agent
-- `GET /api/v1/agents/models` - List available LLM models
+- `GET /api/v1/agents/templates` - List markdown-based templates
+- `POST /api/v1/agents/from-template` - Create agent from template
+- `PUT /api/v1/agents/{id}/resources` - Replace attached resources
+- `POST /api/v1/agents/{id}/run` - Run/queue an agent execution
+- `DELETE /api/v1/agents/{id}` - Delete agent
 
 ### Tasks
 - `GET /api/v1/tasks` - List tasks
@@ -181,7 +181,7 @@ workerbee/
 
 ### Executions
 - `GET /api/v1/executions` - List executions
-- `POST /api/v1/executions` - Create execution
+- `POST /api/v1/executions` - Create execution (workflow or agent)
 - `GET /api/v1/executions/{id}/stream` - Stream execution logs (SSE)
 
 ## Configuration
@@ -192,6 +192,11 @@ workerbee/
 |----------|-------------|---------|
 | `DATABASE_URL` | PostgreSQL connection URL | Required |
 | `SECRET_KEY` | JWT secret key | Required |
+| `LITELLM_BASE_URL` | liteLLM proxy base URL (OpenAI-compatible endpoint) | Optional |
+| `LITELLM_API_KEY` | API key for liteLLM proxy authentication | Optional |
+| `LITELLM_MASTER_KEY` | Alternate liteLLM proxy key variable (backward compatibility) | Optional |
+| `LLM_AVAILABLE_MODELS` | Comma-separated allowlist of model ids agents can use | Optional |
+| `LLM_DEFAULT_MODEL` | Default model id used when no model is specified | Optional |
 | `OPENAI_API_KEY` | OpenAI API key | Optional |
 | `ANTHROPIC_API_KEY` | Anthropic API key | Optional |
 | `MINIO_ENDPOINT` | MinIO endpoint | `minio:9000` |

@@ -72,8 +72,18 @@ services:
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin_secret
       - SECRET_KEY=your-super-secret-key-change-in-production
+      - LITELLM_BASE_URL=${LITELLM_BASE_URL:-}
+      - LITELLM_API_KEY=${LITELLM_API_KEY:-}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-}
+      - LLM_AVAILABLE_MODELS=${LLM_AVAILABLE_MODELS:-}
+      - LLM_DEFAULT_MODEL=${LLM_DEFAULT_MODEL:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - SANDBOX_API_BASE_URL=${SANDBOX_API_BASE_URL:-http://sandbox:9000}
+      - SANDBOX_WORKSPACE_ROOT=${SANDBOX_WORKSPACE_ROOT:-/workspace}
+      - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-1800}
+      - SANDBOX_HTTP_TIMEOUT=${SANDBOX_HTTP_TIMEOUT:-120}
+      - SANDBOX_CAPABILITY_CACHE_SECONDS=${SANDBOX_CAPABILITY_CACHE_SECONDS:-300}
     volumes:
       - ./backend:/app
       - backend_uploads:/app/uploads
@@ -120,9 +130,13 @@ services:
     volumes:
       - sandbox_tmp:/tmp
       - sandbox_workspace:/workspace
+    environment:
+      - SANDBOX_WORKSPACE_ROOT=/workspace
+      - SANDBOX_MAX_FILE_SIZE_BYTES=52428800
+    ports:
+      - "9002:9000"
     networks:
       - workerbee-network
-    command: sleep infinity
 
 volumes:
   postgres_data:

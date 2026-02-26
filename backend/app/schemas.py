@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 # User schemas
@@ -18,7 +18,7 @@ class UserCreate(UserBase):
 
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    email: str = Field(min_length=1)
     password: str
 
 
@@ -133,6 +133,29 @@ class FileResponse(FileBase):
         from_attributes = True
 
 
+class ResourceGroupBase(BaseModel):
+    name: str
+
+
+class ResourceGroupCreate(ResourceGroupBase):
+    pass
+
+
+class ResourceGroupAssign(BaseModel):
+    resource_group_id: Optional[uuid.UUID] = None
+
+
+class ResourceGroupResponse(ResourceGroupBase):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    is_default: bool
+    created_at: datetime
+    file_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
 # Agent schemas
 class AgentTypeBase(BaseModel):
     name: str
@@ -159,6 +182,32 @@ class AgentBase(BaseModel):
 
 class AgentCreate(AgentBase):
     agent_type_id: Optional[uuid.UUID] = None
+
+
+class AgentTemplateResponse(BaseModel):
+    id: str
+    name: str
+    description: str
+    markdown_files: list[str]
+
+
+class AgentCreateFromTemplate(BaseModel):
+    template_id: str
+    name: str
+    description: Optional[str] = None
+    agent_type_id: Optional[uuid.UUID] = None
+    llm_settings: Optional[dict[str, Any]] = None
+    resource_ids: list[uuid.UUID] = Field(default_factory=list)
+
+
+class AgentResourceUpdate(BaseModel):
+    resource_ids: list[uuid.UUID] = Field(default_factory=list)
+
+
+class AgentRunRequest(BaseModel):
+    task_id: Optional[uuid.UUID] = None
+    task_prompt: Optional[str] = None
+    resource_ids: Optional[list[uuid.UUID]] = None
 
 
 class AgentUpdate(BaseModel):
@@ -245,7 +294,7 @@ class ExecutionBase(BaseModel):
 
 
 class ExecutionCreate(ExecutionBase):
-    pass
+    input_data: Optional[dict[str, Any]] = None
 
 
 class ExecutionUpdate(BaseModel):
@@ -292,6 +341,21 @@ class ArtifactResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class RecentOutputFileResponse(BaseModel):
+    id: uuid.UUID
+    execution_id: uuid.UUID
+    output_id: Optional[uuid.UUID]
+    filename: str
+    content_type: str
+    file_size: int
+    storage_path: str
+    created_at: datetime
+    agent_id: Optional[uuid.UUID] = None
+    agent_name: Optional[str] = None
+    output_name: Optional[str] = None
+    output_type: Optional[str] = None
 
 
 # API Key schemas
