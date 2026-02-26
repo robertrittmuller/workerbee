@@ -156,38 +156,6 @@
     @apply transition-all duration-300 hover:shadow-lg hover:border-amber/20;
   }
   
-  /* Node styles for ReactFlow */
-  .workflow-node {
-    @apply bg-white rounded-xl border-2 border-espresso/10 shadow-md min-w-[200px];
-  }
-  
-  .workflow-node.selected {
-    @apply border-amber shadow-lg;
-  }
-  
-  .workflow-node-header {
-    @apply px-4 py-2 border-b border-espresso/5 font-medium text-sm;
-  }
-  
-  .workflow-node-body {
-    @apply px-4 py-3;
-  }
-  
-  /* Input node */
-  .node-input {
-    @apply border-l-4 border-l-blue-400;
-  }
-  
-  /* Agent node */
-  .node-agent {
-    @apply border-l-4 border-l-amber;
-  }
-  
-  /* Output node */
-  .node-output {
-    @apply border-l-4 border-l-green-400;
-  }
-  
   /* Status badges */
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;

@@ -27,7 +27,12 @@ export default function LoginPage() {
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.detail || 'Login failed')
+        const detail = data?.detail
+        if (Array.isArray(detail)) {
+          const firstMessage = detail.find((item) => typeof item?.msg === 'string')?.msg
+          throw new Error(firstMessage || 'Login failed')
+        }
+        throw new Error(typeof detail === 'string' ? detail : 'Login failed')
       }
 
       const data = await response.json()
@@ -119,14 +124,15 @@ export default function LoginPage() {
               {/* Email Field */}
               <div className="space-y-2">
                 <div className="flex justify-between items-end">
-                  <label className="block font-mono text-[10px] text-accent-tan uppercase tracking-[0.2em]">Username</label>
+                  <label className="block font-mono text-[10px] text-accent-tan uppercase tracking-[0.2em]">Email</label>
                   <span className="font-mono text-[8px] text-accent-tan/30 uppercase">ID_FIELD_ALPHA</span>
                 </div>
                 <div className="relative group">
                   <input 
                     className="w-full bg-bg-deep/50 border border-interface-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-white font-mono text-sm px-5 py-4 outline-none transition-all placeholder:text-white/10"
-                    placeholder="USER_IDENT_ALPHA"
-                    type="text"
+                    placeholder="name@company.com"
+                    type="email"
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
