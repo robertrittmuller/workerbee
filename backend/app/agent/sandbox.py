@@ -518,6 +518,11 @@ def list_execution_output_files(
     if path is None or not path.strip():
         return details
 
+    output_root = str(context.get("output_dir", "")).rstrip("/")
+    path_value = path.strip().rstrip("/")
+    if output_root and path_value == output_root:
+        return details
+
     normalized_path = _normalize_output_file_path(context, path)
     if normalized_path is None:
         return []
@@ -596,6 +601,11 @@ def list_execution_input_files(
     context = _get_context(execution_id)
     details = _context_input_file_details(context)
     if path is None or not path.strip():
+        return details
+
+    input_root = str(context.get("input_dir", "")).rstrip("/")
+    path_value = path.strip().rstrip("/")
+    if input_root and path_value == input_root:
         return details
 
     normalized_path = _normalize_input_file_path(context, path)

@@ -208,6 +208,8 @@ class AgentExecutor:
           fields: type, path, max_bytes (optional)
         - list_files: list files under output directory
           fields: type, path (optional), recursive (optional)
+        - stat_file: check if a file exists and get size
+          fields: type, path
         - patch_file: patch text in a file under output directory
           fields: type, path, search, replace, replace_all (optional)
         - read_input_file: read staged input file under input directory
@@ -241,6 +243,7 @@ class AgentExecutor:
           "actions": [{{"type": "...", "...": "..."}}],
           "goal_status": "in_progress|done|blocked"
         }}
+        Note: for each action, put parameters at the top level (no nested `arguments` object).
         Do not include markdown or prose outside JSON.
         """
 
@@ -340,8 +343,9 @@ class AgentExecutor:
             max_actions_this_iteration = max(1, min(max_actions_per_iteration, remaining_action_budget))
             if isinstance(actions_raw, list):
                 for item in actions_raw[:max_actions_this_iteration]:
-                    if isinstance(item, dict):
-                        actions.append(dict(item))
+                    normalized_action = self._normalize_action_item(item)
+                    if normalized_action:
+                        actions.append(normalized_action)
 
             if not actions:
                 output_snapshot = list_execution_output_files(self.execution_id)
@@ -1062,6 +1066,7 @@ class AgentExecutor:
             "write_file",
             "read_file",
             "list_files",
+            "stat_file",
             "patch_file",
             "read_input_file",
             "list_input_files",
@@ -1073,6 +1078,60 @@ class AgentExecutor:
             if isinstance(key, str) and key.strip():
                 action_payload[key] = value
         return action_payload
+
+    def _normalize_action_item(self, item: Any) -> dict[str, Any] | None:
+        """Normalize action payload variants into flat {type, ...} schema."""
+        if not isinstance(item, dict):
+            return None
+
+        payload = dict(item)
+        nested_action = payload.get("action")
+        if isinstance(nested_action, dict):
+            payload = {**nested_action, **payload}
+
+        action_type_raw = payload.get("type")
+        if not isinstance(action_type_raw, str) or not action_type_raw.strip():
+            name_value = payload.get("name")
+            if isinstance(name_value, str) and name_value.strip():
+                action_type_raw = name_value
+        if not isinstance(action_type_raw, str) or not action_type_raw.strip():
+            return None
+
+        action_type = action_type_raw.strip().lower()
+        normalized: dict[str, Any] = {"type": action_type}
+
+        wrappers: list[dict[str, Any]] = []
+        for wrapper_key in ("arguments", "params", "kwargs"):
+            wrapper_value = payload.get(wrapper_key)
+            if isinstance(wrapper_value, dict):
+                wrappers.append(wrapper_value)
+
+        for source in wrappers + [payload]:
+            for key, value in source.items():
+                if not isinstance(key, str):
+                    continue
+                key_name = key.strip()
+                if not key_name:
+                    continue
+                key_lower = key_name.lower()
+                if key_lower in {
+                    "type",
+                    "name",
+                    "arguments",
+                    "params",
+                    "kwargs",
+                    "status",
+                    "notes",
+                    "id",
+                    "title",
+                    "task",
+                    "description",
+                }:
+                    continue
+                if key_name not in normalized:
+                    normalized[key_name] = value
+
+        return normalized
 
     def _resolve_execution_budgets(self) -> dict[str, int]:
         """Resolve adaptive execution budgets with backward-compatible defaults."""
@@ -1258,7 +1317,8 @@ class AgentExecutor:
         step_index: int,
     ) -> dict[str, Any]:
         """Execute one structured sandbox action."""
-        action_type = str(action.get("type", "")).strip().lower()
+        normalized_action = self._normalize_action_item(action) or {}
+        action_type = str(normalized_action.get("type", "")).strip().lower()
         if not action_type:
             return {
                 "success": False,
@@ -1270,7 +1330,7 @@ class AgentExecutor:
             }
 
         if action_type == "run":
-            command = action.get("command")
+            command = normalized_action.get("command")
             if not isinstance(command, str) or not command.strip():
                 return {
                     "success": False,
@@ -1280,7 +1340,7 @@ class AgentExecutor:
                     "script_path": "",
                     "output_files": list_execution_output_files(self.execution_id),
                 }
-            raw_timeout = action.get("timeout_seconds")
+            raw_timeout = normalized_action.get("timeout_seconds")
             timeout = None
             if isinstance(raw_timeout, int):
                 timeout = max(1, min(raw_timeout, 3600))
@@ -1289,7 +1349,7 @@ class AgentExecutor:
                     timeout = max(1, min(int(raw_timeout), 3600))
                 except (TypeError, ValueError):
                     timeout = None
-            cwd = action.get("cwd")
+            cwd = normalized_action.get("cwd")
             cwd_value = cwd.strip() if isinstance(cwd, str) and cwd.strip() else None
             return await execute_shell_command(
                 self.execution_id,
@@ -1300,17 +1360,23 @@ class AgentExecutor:
             )
 
         if action_type == "run_python":
-            code = action.get("code")
+            code = normalized_action.get("code")
+            if (not isinstance(code, str) or not code.strip()) and isinstance(normalized_action.get("command"), str):
+                code = normalized_action.get("command")
+            if (not isinstance(code, str) or not code.strip()) and isinstance(normalized_action.get("script"), str):
+                code = normalized_action.get("script")
+            if (not isinstance(code, str) or not code.strip()) and isinstance(normalized_action.get("source"), str):
+                code = normalized_action.get("source")
             if not isinstance(code, str) or not code.strip():
                 return {
                     "success": False,
                     "exit_code": -1,
                     "stdout": "",
-                    "stderr": "run_python action requires non-empty `code`.",
+                    "stderr": "run_python action requires non-empty `code` (or compatibility aliases `command`/`script`/`source`).",
                     "script_path": "",
                     "output_files": list_execution_output_files(self.execution_id),
                 }
-            raw_timeout = action.get("timeout_seconds")
+            raw_timeout = normalized_action.get("timeout_seconds")
             timeout = None
             if isinstance(raw_timeout, int):
                 timeout = max(1, min(raw_timeout, 3600))
@@ -1326,9 +1392,9 @@ class AgentExecutor:
             )
 
         if action_type == "write_file":
-            path = action.get("path")
-            content = action.get("content")
-            append = bool(action.get("append", False))
+            path = normalized_action.get("path")
+            content = normalized_action.get("content")
+            append = bool(normalized_action.get("append", False))
             if not isinstance(path, str) or not path.strip():
                 return {
                     "success": False,
@@ -1348,7 +1414,7 @@ class AgentExecutor:
             )
 
         if action_type == "read_file":
-            path = action.get("path")
+            path = normalized_action.get("path")
             if not isinstance(path, str) or not path.strip():
                 return {
                     "success": False,
@@ -1358,7 +1424,7 @@ class AgentExecutor:
                     "script_path": "",
                     "output_files": list_execution_output_files(self.execution_id),
                 }
-            raw_max_bytes = action.get("max_bytes", 200_000)
+            raw_max_bytes = normalized_action.get("max_bytes", 200_000)
             try:
                 max_bytes = max(1, min(int(raw_max_bytes), 2_000_000))
             except (TypeError, ValueError):
@@ -1379,9 +1445,9 @@ class AgentExecutor:
             )
 
         if action_type == "list_files":
-            path = action.get("path")
+            path = normalized_action.get("path")
             path_value = path if isinstance(path, str) and path.strip() else None
-            recursive = bool(action.get("recursive", True))
+            recursive = bool(normalized_action.get("recursive", True))
             input_root = self.sandbox_input_dir.rstrip("/")
             if isinstance(path_value, str):
                 path_value = path_value.strip()
@@ -1413,8 +1479,79 @@ class AgentExecutor:
                 "output_files": files,
             }
 
+        if action_type == "stat_file":
+            path = normalized_action.get("path")
+            if not isinstance(path, str) or not path.strip():
+                return {
+                    "success": False,
+                    "exit_code": -1,
+                    "stdout": "",
+                    "stderr": "stat_file action requires non-empty `path`.",
+                    "script_path": "",
+                    "output_files": list_execution_output_files(self.execution_id),
+                }
+            path_value = path.strip()
+            input_root = self.sandbox_input_dir.rstrip("/")
+            output_root = self.sandbox_output_dir.rstrip("/")
+
+            if path_value == input_root or path_value.startswith(f"{input_root}/"):
+                files = list_execution_input_files(self.execution_id, path=path_value, recursive=True)
+                size_value = 0
+                if files:
+                    try:
+                        size_value = int(files[0].get("size", 0))
+                    except (TypeError, ValueError):
+                        size_value = 0
+                status_payload = {
+                    "path": path_value,
+                    "scope": "input",
+                    "exists": bool(files),
+                    "size": size_value,
+                }
+                return {
+                    "success": True,
+                    "exit_code": 0,
+                    "stdout": json.dumps(status_payload, ensure_ascii=False),
+                    "stderr": "",
+                    "script_path": path_value,
+                    "output_files": list_execution_output_files(self.execution_id),
+                }
+
+            if path_value == output_root or path_value.startswith(f"{output_root}/"):
+                files = list_execution_output_files(self.execution_id, path=path_value, recursive=True)
+                size_value = 0
+                if files:
+                    try:
+                        size_value = int(files[0].get("size", 0))
+                    except (TypeError, ValueError):
+                        size_value = 0
+                status_payload = {
+                    "path": path_value,
+                    "scope": "output",
+                    "exists": bool(files),
+                    "size": size_value,
+                }
+                return {
+                    "success": True,
+                    "exit_code": 0,
+                    "stdout": json.dumps(status_payload, ensure_ascii=False),
+                    "stderr": "",
+                    "script_path": path_value,
+                    "output_files": files,
+                }
+            return {
+                "success": False,
+                "exit_code": -1,
+                "stdout": "",
+                "stderr": (
+                    f"stat_file path must be under {self.sandbox_input_dir}/ or {self.sandbox_output_dir}/"
+                ),
+                "script_path": "",
+                "output_files": list_execution_output_files(self.execution_id),
+            }
+
         if action_type == "read_input_file":
-            path = action.get("path")
+            path = normalized_action.get("path")
             if not isinstance(path, str) or not path.strip():
                 return {
                     "success": False,
@@ -1424,7 +1561,7 @@ class AgentExecutor:
                     "script_path": "",
                     "output_files": list_execution_output_files(self.execution_id),
                 }
-            raw_max_bytes = action.get("max_bytes", 200_000)
+            raw_max_bytes = normalized_action.get("max_bytes", 200_000)
             try:
                 max_bytes = max(1, min(int(raw_max_bytes), 2_000_000))
             except (TypeError, ValueError):
@@ -1436,9 +1573,9 @@ class AgentExecutor:
             )
 
         if action_type == "list_input_files":
-            path = action.get("path")
+            path = normalized_action.get("path")
             path_value = path.strip() if isinstance(path, str) and path.strip() else None
-            recursive = bool(action.get("recursive", True))
+            recursive = bool(normalized_action.get("recursive", True))
             files = list_execution_input_files(
                 self.execution_id,
                 path=path_value,
@@ -1454,10 +1591,10 @@ class AgentExecutor:
             }
 
         if action_type == "patch_file":
-            path = action.get("path")
-            search = action.get("search")
-            replace = action.get("replace")
-            replace_all = bool(action.get("replace_all", False))
+            path = normalized_action.get("path")
+            search = normalized_action.get("search")
+            replace = normalized_action.get("replace")
+            replace_all = bool(normalized_action.get("replace_all", False))
             if not isinstance(path, str) or not path.strip():
                 return {
                     "success": False,
@@ -1508,7 +1645,7 @@ class AgentExecutor:
             command = action.get("command")
             if isinstance(command, str):
                 action_preview = command[:200]
-        elif action_type in {"write_file", "read_file", "read_input_file", "patch_file"}:
+        elif action_type in {"write_file", "read_file", "read_input_file", "patch_file", "stat_file"}:
             path = action.get("path")
             if isinstance(path, str):
                 action_preview = path
