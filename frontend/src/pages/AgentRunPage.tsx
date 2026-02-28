@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
@@ -166,6 +166,8 @@ export default function AgentRunPage() {
   const [streamError, setStreamError] = useState<string | null>(null)
   const [streamLogs, setStreamLogs] = useState<AgentActivityLog[]>([])
   const [downloadingOutputId, setDownloadingOutputId] = useState<string | null>(null)
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false)
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false)
 
   const token = localStorage.getItem('access_token')
   const streamSourceRef = useRef<EventSource | null>(null)
@@ -602,10 +604,19 @@ export default function AgentRunPage() {
   }
 
   const agent = agentQuery.data as Agent | undefined
+  const desktopGridColumns = useMemo(() => {
+    const left = isLeftSidebarCollapsed ? '56px' : '280px'
+    const right = isRightSidebarCollapsed ? '56px' : '320px'
+    return `${left} minmax(0,1fr) ${right}`
+  }, [isLeftSidebarCollapsed, isRightSidebarCollapsed])
+  const appGridStyle = useMemo(
+    () => ({ '--agent-grid-columns': desktopGridColumns }) as CSSProperties,
+    [desktopGridColumns]
+  )
 
   return (
-    <div className="min-h-screen bg-bg-dark text-white">
-      <nav className="sticky top-0 z-20 h-16 bg-bg-sidebar border-b border-interface-border flex items-center px-6 lg:px-12 justify-between">
+    <div className="h-screen max-h-screen bg-bg-dark text-white flex flex-col overflow-hidden">
+      <nav className="z-20 h-16 shrink-0 bg-bg-sidebar border-b border-interface-border flex items-center px-6 lg:px-12 justify-between">
         <div className="flex items-center gap-3">
           <div className="text-primary flex items-center justify-center border-2 border-primary p-1">
             <span className="material-symbols-outlined text-2xl font-bold">smart_toy</span>
@@ -620,8 +631,8 @@ export default function AgentRunPage() {
         </Button>
       </nav>
 
-      <main className="px-4 py-6 lg:px-8 lg:py-8">
-        <div className="wireframe-box bg-bg-sidebar p-4 mb-4 flex flex-wrap items-center justify-between gap-3">
+      <main className="flex-1 min-h-0 px-4 py-4 lg:px-8 lg:py-6 flex flex-col gap-4 overflow-hidden">
+        <div className="wireframe-box bg-bg-sidebar p-4 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div>
             <h1 className="font-mono font-bold text-base text-white">
               {agent ? agent.name : agentQuery.isLoading ? 'Loading agent...' : 'Agent not found'}
@@ -649,27 +660,63 @@ export default function AgentRunPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
-          <aside className="wireframe-box bg-bg-sidebar p-4 h-[75vh] flex flex-col min-h-0">
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <h2 className="font-mono font-bold text-sm">Attached Resources</h2>
-              <span className="text-[11px] font-mono text-accent-tan">
-                {(resourcesQuery.data ?? []).length}
-              </span>
+        <div
+          className="grid grid-cols-1 gap-4 min-h-0 flex-1 lg:grid-cols-[var(--agent-grid-columns)]"
+          style={appGridStyle}
+        >
+          <aside
+            className={`wireframe-box bg-bg-sidebar h-full flex flex-col min-h-0 transition-all duration-200 ${
+              isLeftSidebarCollapsed ? 'px-2 py-3' : 'p-4'
+            }`}
+          >
+            <div
+              className={`flex items-center gap-2 mb-3 ${
+                isLeftSidebarCollapsed ? 'justify-center' : 'justify-between'
+              }`}
+            >
+              {!isLeftSidebarCollapsed && (
+                <>
+                  <h2 className="font-mono font-bold text-sm">Attached Resources</h2>
+                  <span className="text-[11px] font-mono text-accent-tan">
+                    {(resourcesQuery.data ?? []).length}
+                  </span>
+                </>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-8 h-8 p-0"
+                onClick={() => setIsLeftSidebarCollapsed((current) => !current)}
+                aria-label={isLeftSidebarCollapsed ? 'Expand resources sidebar' : 'Collapse resources sidebar'}
+                title={isLeftSidebarCollapsed ? 'Expand resources sidebar' : 'Collapse resources sidebar'}
+              >
+                <span className="material-symbols-outlined text-base">
+                  {isLeftSidebarCollapsed
+                    ? 'keyboard_double_arrow_right'
+                    : 'keyboard_double_arrow_left'}
+                </span>
+              </Button>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-              {resourcesQuery.isLoading && (
-                <p className="text-xs font-mono text-accent-tan">Loading resources...</p>
-              )}
-              {!resourcesQuery.isLoading && (resourcesQuery.data ?? []).length === 0 && (
-                <p className="text-xs font-mono text-accent-tan">No resources attached to this agent.</p>
-              )}
-              {(resourcesQuery.data ?? []).map((resource) => renderResource(resource))}
-            </div>
+            {isLeftSidebarCollapsed ? (
+              <div className="flex-1 flex items-center justify-center">
+                <span className="material-symbols-outlined text-accent-tan/70">description</span>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                {resourcesQuery.isLoading && (
+                  <p className="text-xs font-mono text-accent-tan">Loading resources...</p>
+                )}
+                {!resourcesQuery.isLoading && (resourcesQuery.data ?? []).length === 0 && (
+                  <p className="text-xs font-mono text-accent-tan">No resources attached to this agent.</p>
+                )}
+                {(resourcesQuery.data ?? []).map((resource) => renderResource(resource))}
+              </div>
+            )}
           </aside>
 
-          <section className="wireframe-box bg-bg-sidebar p-4 h-[75vh] flex flex-col min-h-0">
+          <section className="wireframe-box bg-bg-sidebar p-4 h-full flex flex-col min-h-0">
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
                 <h2 className="font-mono font-bold text-sm">Live Agent Activity</h2>
@@ -827,37 +874,72 @@ export default function AgentRunPage() {
             </form>
           </section>
 
-          <aside className="wireframe-box bg-bg-sidebar p-4 h-[75vh] flex flex-col min-h-0">
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <h2 className="font-mono font-bold text-sm">Outputs</h2>
-              <span className="text-[11px] font-mono text-accent-tan">
-                {(outputsQuery.data ?? []).length}
-              </span>
+          <aside
+            className={`wireframe-box bg-bg-sidebar h-full flex flex-col min-h-0 transition-all duration-200 ${
+              isRightSidebarCollapsed ? 'px-2 py-3' : 'p-4'
+            }`}
+          >
+            <div
+              className={`flex items-center gap-2 mb-3 ${
+                isRightSidebarCollapsed ? 'justify-center' : 'justify-between'
+              }`}
+            >
+              {!isRightSidebarCollapsed && (
+                <>
+                  <h2 className="font-mono font-bold text-sm">Outputs</h2>
+                  <span className="text-[11px] font-mono text-accent-tan">
+                    {(outputsQuery.data ?? []).length}
+                  </span>
+                </>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-8 h-8 p-0"
+                onClick={() => setIsRightSidebarCollapsed((current) => !current)}
+                aria-label={isRightSidebarCollapsed ? 'Expand outputs sidebar' : 'Collapse outputs sidebar'}
+                title={isRightSidebarCollapsed ? 'Expand outputs sidebar' : 'Collapse outputs sidebar'}
+              >
+                <span className="material-symbols-outlined text-base">
+                  {isRightSidebarCollapsed
+                    ? 'keyboard_double_arrow_left'
+                    : 'keyboard_double_arrow_right'}
+                </span>
+              </Button>
             </div>
 
-            <p className="text-[11px] font-mono text-accent-tan/80 mb-3">
-              {activeExecution ? 'Live output updates are active.' : 'Polling for latest output files.'}
-            </p>
+            {isRightSidebarCollapsed ? (
+              <div className="flex-1 flex items-center justify-center">
+                <span className="material-symbols-outlined text-accent-tan/70">draft</span>
+              </div>
+            ) : (
+              <>
+                <p className="text-[11px] font-mono text-accent-tan/80 mb-3">
+                  {activeExecution ? 'Live output updates are active.' : 'Polling for latest output files.'}
+                </p>
 
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-              {outputsQuery.isLoading && (
-                <p className="text-xs font-mono text-accent-tan">Loading outputs...</p>
-              )}
-              {!outputsQuery.isLoading && (outputsQuery.data ?? []).length === 0 && (
-                <p className="text-xs font-mono text-accent-tan">No output files generated yet.</p>
-              )}
-              {(outputsQuery.data ?? []).map((output) => renderOutput(output))}
-            </div>
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                  {outputsQuery.isLoading && (
+                    <p className="text-xs font-mono text-accent-tan">Loading outputs...</p>
+                  )}
+                  {!outputsQuery.isLoading && (outputsQuery.data ?? []).length === 0 && (
+                    <p className="text-xs font-mono text-accent-tan">No output files generated yet.</p>
+                  )}
+                  {(outputsQuery.data ?? []).map((output) => renderOutput(output))}
+                </div>
+              </>
+            )}
           </aside>
         </div>
 
         {errorMessage && (
-          <div className="mt-4 text-xs font-mono text-signal-red bg-signal-red/10 border border-signal-red/30 rounded px-3 py-2">
+          <div className="text-xs font-mono text-signal-red bg-signal-red/10 border border-signal-red/30 rounded px-3 py-2 shrink-0">
             {errorMessage}
           </div>
         )}
         {successMessage && (
-          <div className="mt-4 text-xs font-mono text-primary bg-primary/10 border border-primary/30 rounded px-3 py-2">
+          <div className="text-xs font-mono text-primary bg-primary/10 border border-primary/30 rounded px-3 py-2 shrink-0">
             {successMessage}
           </div>
         )}

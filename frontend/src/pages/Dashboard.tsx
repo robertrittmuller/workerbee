@@ -349,7 +349,7 @@ export default function Dashboard() {
 
   const recentOutputQuery = useQuery({
     queryKey: ['recent-output-files'],
-    queryFn: async () => (await outputsApi.listRecentFiles({ limit: 30 })).data,
+    queryFn: async () => (await outputsApi.listRecentFiles({ limit: 10 })).data,
     enabled: Boolean(token),
     refetchInterval: hasActiveRecentExecution ? 5000 : false,
     refetchOnWindowFocus: false,
@@ -955,8 +955,8 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      <main className="px-6 py-8 lg:px-12">
-        <div className="w-full grid gap-6 lg:grid-cols-[minmax(320px,420px)_1fr]">
+      <main className="px-6 py-8 lg:px-12 min-h-[calc(100vh-4rem)]">
+        <div className="w-full grid gap-6 lg:grid-cols-[minmax(320px,420px)_1fr] h-full">
           <section className="space-y-6">
             <div className="wireframe-box bg-bg-sidebar p-5 space-y-5">
               <div>
@@ -1089,13 +1089,13 @@ export default function Dashboard() {
             )}
           </section>
 
-          <section className="space-y-6">
+          <section className="space-y-6 flex flex-col min-h-0">
             <div
-              className={`grid gap-6 ${
+              className={`grid gap-6 flex-1 min-h-0 ${
                 selectedAgent ? 'xl:grid-cols-[minmax(0,1fr)_360px]' : 'grid-cols-1'
               }`}
             >
-              <div className="space-y-6">
+              <div className="space-y-6 flex flex-col min-h-0">
                 <div className="wireframe-box bg-bg-sidebar p-5">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="font-mono font-bold text-base">Agents</h2>
@@ -1286,7 +1286,7 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                <div className="wireframe-box bg-bg-sidebar p-5 space-y-3">
+                <div className="wireframe-box bg-bg-sidebar p-5 space-y-3 flex flex-col flex-1 min-h-0">
                   <div className="flex items-center justify-between gap-3">
                     <h2 className="font-mono font-bold text-base">Recent Output</h2>
                     <div className="flex items-center gap-2">
@@ -1307,7 +1307,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="max-h-96 overflow-y-auto border border-interface-border rounded p-3 space-y-2">
+                  <div className="flex-1 min-h-0 overflow-y-auto border border-interface-border rounded p-3 space-y-2">
                     {recentOutputQuery.isLoading && (
                       <p className="text-xs font-mono text-accent-tan">Loading recent output...</p>
                     )}
