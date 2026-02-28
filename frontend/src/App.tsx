@@ -4,6 +4,7 @@ import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import Dashboard from './pages/Dashboard'
+import AgentRunPage from './pages/AgentRunPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,6 +24,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/agents/:agentId/run" element={<AgentRunPage />} />
           <Route path="/workflows/new" element={<Navigate to="/dashboard" replace />} />
           <Route path="/workflows/:id" element={<Navigate to="/dashboard" replace />} />
           <Route path="/workflow/:id" element={<Navigate to="/dashboard" replace />} />

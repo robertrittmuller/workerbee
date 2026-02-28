@@ -160,7 +160,6 @@ export default function Dashboard() {
   const [newResourceGroupName, setNewResourceGroupName] = useState('')
   const [createUploadGroupId, setCreateUploadGroupId] = useState('')
   const [selectedResourceGroupId, setSelectedResourceGroupId] = useState('')
-  const [runPrompt, setRunPrompt] = useState('')
   const [isUploading, setIsUploading] = useState(false)
   const [isFileManagerOpen, setIsFileManagerOpen] = useState(false)
   const [fileManagerTab, setFileManagerTab] = useState<'input' | 'output' | 'markdown'>('input')
@@ -614,26 +613,6 @@ export default function Dashboard() {
     },
   })
 
-  const runAgentMutation = useMutation({
-    mutationFn: async (agentId: string) => {
-      return (
-        await agentsApi.run(agentId, {
-          task_prompt: runPrompt || undefined,
-        })
-      ).data
-    },
-    onSuccess: async (_, agentId) => {
-      setSuccessMessage('Agent run queued.')
-      setErrorMessage(null)
-      setRunPrompt('')
-      await queryClient.invalidateQueries({ queryKey: ['executions', agentId] })
-      await queryClient.invalidateQueries({ queryKey: ['agent-activity', agentId] })
-    },
-    onError: (error: unknown) => {
-      setSuccessMessage(null)
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to run agent')
-    },
-  })
 
   const saveAgentGroupLinksMutation = useMutation({
     mutationFn: async () => {
@@ -1146,11 +1125,7 @@ export default function Dashboard() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                setSelectedAgentId(agent.id)
-                                runAgentMutation.mutate(agent.id)
-                              }}
-                              disabled={runAgentMutation.isPending}
+                              onClick={() => navigate(`/agents/${agent.id}/run`)}
                               className="flex-1"
                             >
                               <span className="material-symbols-outlined text-sm">play_arrow</span>
@@ -1429,21 +1404,17 @@ export default function Dashboard() {
                   </Button>
 
                   <div className="pt-3 border-t border-interface-border/70 space-y-3">
-                    <h3 className="font-mono font-bold text-sm">Run Agent</h3>
-                    <textarea
-                      value={runPrompt}
-                      onChange={(event) => setRunPrompt(event.target.value)}
-                      className="w-full min-h-24 bg-white/5 border border-interface-border rounded px-3 py-2 text-sm font-mono"
-                      placeholder="Optional run instructions"
-                    />
+                    <h3 className="font-mono font-bold text-sm">Run Console</h3>
+                    <p className="text-xs font-mono text-accent-tan">
+                      Open the dedicated run page to submit commands, watch live activity, and review outputs.
+                    </p>
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => runAgentMutation.mutate(selectedAgent.id)}
-                      disabled={runAgentMutation.isPending}
+                      onClick={() => navigate(`/agents/${selectedAgent.id}/run`)}
                     >
                       <span className="material-symbols-outlined text-sm">terminal</span>
-                      Queue Run
+                      Open Run Page
                     </Button>
                   </div>
                 </aside>
