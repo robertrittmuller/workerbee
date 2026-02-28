@@ -13,6 +13,8 @@ import {
 } from '@/lib/api'
 
 type ActivityType = 'tool' | 'llm' | 'resource' | 'execution' | 'error' | 'system'
+type ActivitySource = 'status' | 'transcript'
+type ActivityRole = 'system' | 'user' | 'assistant' | 'tool' | 'other'
 
 type AgentActivityLog = {
   id: string
@@ -21,6 +23,8 @@ type AgentActivityLog = {
   timestamp: string
   level: string
   message: string
+  source: ActivitySource
+  role?: ActivityRole
   data?: Record<string, unknown> | null
 }
 
@@ -70,6 +74,21 @@ function formatFileSize(bytes: number): string {
 }
 
 function inferActivityType(activity: AgentActivityLog): ActivityType {
+  if (activity.source === 'transcript') {
+    if (activity.role === 'assistant') {
+      return 'llm'
+    }
+    if (activity.role === 'tool') {
+      return 'tool'
+    }
+    if (activity.role === 'user') {
+      return 'execution'
+    }
+    if (activity.role === 'system') {
+      return 'system'
+    }
+  }
+
   const payload = `${activity.message} ${JSON.stringify(activity.data ?? {})}`.toLowerCase()
   const level = activity.level.toLowerCase()
 
@@ -150,6 +169,121 @@ function formatQueuePreview(prompt: string): string {
     return trimmed
   }
   return `${trimmed.slice(0, 57)}...`
+}
+
+function normalizeMessageRole(role: unknown): ActivityRole {
+  if (typeof role !== 'string') {
+    return 'other'
+  }
+  const normalized = role.toLowerCase()
+  if (
+    normalized === 'system' ||
+    normalized === 'user' ||
+    normalized === 'assistant' ||
+    normalized === 'tool'
+  ) {
+    return normalized
+  }
+  return 'other'
+}
+
+function normalizeMessageContent(content: unknown): string {
+  if (typeof content === 'string') {
+    return content.trim()
+  }
+  if (Array.isArray(content)) {
+    const parts = content
+      .map((part) => {
+        if (typeof part === 'string') {
+          return part.trim()
+        }
+        if (part && typeof part === 'object') {
+          const text = (part as Record<string, unknown>).text
+          if (typeof text === 'string') {
+            return text.trim()
+          }
+        }
+        return ''
+      })
+      .filter(Boolean)
+    return parts.join('\n').trim()
+  }
+  if (content == null) {
+    return ''
+  }
+  return String(content).trim()
+}
+
+function getTranscriptActivity(execution: Execution): AgentActivityLog[] {
+  const resultPayload = execution.result
+  if (!resultPayload || typeof resultPayload !== 'object') {
+    return []
+  }
+
+  const runResult = (resultPayload as Record<string, unknown>).run_result
+  if (!runResult || typeof runResult !== 'object') {
+    return []
+  }
+
+  const rawMessages = (runResult as Record<string, unknown>).messages
+  if (!Array.isArray(rawMessages)) {
+    return []
+  }
+
+  const baseTime = getExecutionTimestamp(execution) || Date.now()
+  const messageCount = rawMessages.length || 1
+
+  return rawMessages
+    .map((entry, index) => {
+      if (!entry || typeof entry !== 'object') {
+        return null
+      }
+      const messageEntry = entry as Record<string, unknown>
+      const message = normalizeMessageContent(messageEntry.content)
+      if (!message) {
+        return null
+      }
+
+      const spreadMs = Math.floor((index / messageCount) * 1000)
+      const timestamp = new Date(baseTime + spreadMs).toISOString()
+      const role = normalizeMessageRole(messageEntry.role)
+
+      return {
+        id: `transcript-${execution.id}-${index + 1}`,
+        executionId: execution.id,
+        executionStatus: execution.status,
+        timestamp,
+        level: role === 'assistant' ? 'info' : 'debug',
+        message,
+        source: 'transcript' as const,
+        role,
+        data: {
+          role,
+          source: 'transcript',
+          message_index: index + 1,
+        },
+      } satisfies AgentActivityLog
+    })
+    .filter((entry): entry is AgentActivityLog => Boolean(entry))
+}
+
+function getActivityLabel(activity: AgentActivityLog, type: ActivityType): string {
+  if (activity.source === 'transcript') {
+    if (activity.role === 'assistant') {
+      return 'assistant'
+    }
+    if (activity.role === 'user') {
+      return 'user'
+    }
+    if (activity.role === 'system') {
+      return 'system'
+    }
+    if (activity.role === 'tool') {
+      return 'tool'
+    }
+    return 'message'
+  }
+  return type
 }
 
 export default function AgentRunPage() {
@@ -271,6 +405,7 @@ export default function AgentRunPage() {
               timestamp: log.timestamp,
               level: log.level,
               message: log.message,
+              source: 'status' as const,
               data: log.data ?? null,
             }))
           } catch {
@@ -306,11 +441,16 @@ export default function AgentRunPage() {
     for (const streamLog of streamLogs) {
       merged.set(streamLog.id, streamLog)
     }
+    for (const execution of recentExecutions) {
+      for (const transcriptEntry of getTranscriptActivity(execution)) {
+        merged.set(transcriptEntry.id, transcriptEntry)
+      }
+    }
 
     return [...merged.values()]
       .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp))
       .slice(-250)
-  }, [activityLogsQuery.data, streamLogs])
+  }, [activityLogsQuery.data, recentExecutions, streamLogs])
 
   const isBusy =
     Boolean(activeExecution) ||
@@ -406,6 +546,7 @@ export default function AgentRunPage() {
             timestamp: payload.timestamp,
             level: payload.level ?? 'info',
             message: payload.message ?? '',
+            source: 'status',
             data: payload.data ?? null,
           }
 
@@ -428,6 +569,7 @@ export default function AgentRunPage() {
               payload.status === 'failed'
                 ? 'Execution completed with failure.'
                 : 'Execution completed.',
+            source: 'status',
             data: null,
           }
 
@@ -722,8 +864,8 @@ export default function AgentRunPage() {
                 <h2 className="font-mono font-bold text-sm">Live Agent Activity</h2>
                 <p className="text-[11px] font-mono text-accent-tan mt-1">
                   {activeExecution
-                    ? 'Agent is running. New commands will be queued and sent automatically after this run completes.'
-                    : 'Agent is idle. New commands will run immediately.'}
+                    ? 'Showing execution status plus run transcript messages as they become available.'
+                    : 'Showing execution status and recent run transcript messages.'}
                 </p>
               </div>
 
@@ -785,6 +927,7 @@ export default function AgentRunPage() {
 
               {mergedActivity.map((activity) => {
                 const activityType = inferActivityType(activity)
+                const activityLabel = getActivityLabel(activity, activityType)
                 const detail = readErrorDetail(activity.data)
 
                 return (
@@ -796,18 +939,20 @@ export default function AgentRunPage() {
                       <span
                         className={`text-[10px] font-mono uppercase tracking-wider rounded px-2 py-0.5 ${getActivityBadgeClasses(activityType)}`}
                       >
-                        {activityType}
+                        {activityLabel}
                       </span>
                       <span className="text-[10px] font-mono text-accent-tan/90">
                         {formatTime(activity.timestamp)}
                       </span>
                     </div>
-                    <p className="text-xs font-mono text-white break-words">{activity.message}</p>
+                    <p className="text-xs font-mono text-white break-words whitespace-pre-wrap">
+                      {activity.message}
+                    </p>
                     {activity.level.toLowerCase() === 'error' && detail && (
                       <p className="text-xs font-mono text-signal-red break-words">Detail: {detail}</p>
                     )}
                     <p className="text-[10px] font-mono text-accent-tan/80">
-                      {activity.executionStatus.toUpperCase()} · {activity.executionId}
+                      {activity.executionStatus.toUpperCase()} · {activity.executionId} · {activity.source}
                     </p>
                   </div>
                 )
