@@ -171,6 +171,14 @@ function formatQueuePreview(prompt: string): string {
   return `${trimmed.slice(0, 57)}...`
 }
 
+function formatCollapsedPreview(message: string): string {
+  const compact = message.replace(/\s+/g, ' ').trim()
+  if (compact.length <= 140) {
+    return compact
+  }
+  return `${compact.slice(0, 137)}...`
+}
+
 function normalizeMessageRole(role: unknown): ActivityRole {
   if (typeof role !== 'string') {
     return 'other'
@@ -299,6 +307,9 @@ export default function AgentRunPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [streamError, setStreamError] = useState<string | null>(null)
   const [streamLogs, setStreamLogs] = useState<AgentActivityLog[]>([])
+  const [transcriptExpansionOverrides, setTranscriptExpansionOverrides] = useState<
+    Record<string, boolean>
+  >({})
   const [downloadingOutputId, setDownloadingOutputId] = useState<string | null>(null)
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false)
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false)
@@ -451,6 +462,72 @@ export default function AgentRunPage() {
       .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp))
       .slice(-250)
   }, [activityLogsQuery.data, recentExecutions, streamLogs])
+
+  const latestTranscriptActivityId = useMemo(() => {
+    for (let index = mergedActivity.length - 1; index >= 0; index -= 1) {
+      if (mergedActivity[index].source === 'transcript') {
+        return mergedActivity[index].id
+      }
+    }
+    return null
+  }, [mergedActivity])
+
+  useEffect(() => {
+    setTranscriptExpansionOverrides((current) => {
+      const keys = Object.keys(current)
+      if (keys.length === 0) {
+        return current
+      }
+      const activeTranscriptIds = new Set(
+        mergedActivity
+          .filter((activity) => activity.source === 'transcript')
+          .map((activity) => activity.id)
+      )
+      let changed = false
+      const next: Record<string, boolean> = {}
+      for (const [key, value] of Object.entries(current)) {
+        if (activeTranscriptIds.has(key)) {
+          next[key] = value
+        } else {
+          changed = true
+        }
+      }
+      return changed ? next : current
+    })
+  }, [mergedActivity])
+
+  const isTranscriptExpanded = useCallback(
+    (activity: AgentActivityLog): boolean => {
+      if (activity.source !== 'transcript') {
+        return true
+      }
+      const override = transcriptExpansionOverrides[activity.id]
+      if (typeof override === 'boolean') {
+        return override
+      }
+      return activity.id === latestTranscriptActivityId
+    },
+    [latestTranscriptActivityId, transcriptExpansionOverrides]
+  )
+
+  const toggleTranscriptExpanded = useCallback(
+    (activity: AgentActivityLog) => {
+      if (activity.source !== 'transcript') {
+        return
+      }
+      setTranscriptExpansionOverrides((current) => {
+        const currentValue =
+          typeof current[activity.id] === 'boolean'
+            ? current[activity.id]
+            : activity.id === latestTranscriptActivityId
+        return {
+          ...current,
+          [activity.id]: !currentValue,
+        }
+      })
+    },
+    [latestTranscriptActivityId]
+  )
 
   const isBusy =
     Boolean(activeExecution) ||
@@ -929,6 +1006,7 @@ export default function AgentRunPage() {
                 const activityType = inferActivityType(activity)
                 const activityLabel = getActivityLabel(activity, activityType)
                 const detail = readErrorDetail(activity.data)
+                const expanded = isTranscriptExpanded(activity)
 
                 return (
                   <div
@@ -936,20 +1014,42 @@ export default function AgentRunPage() {
                     className="bg-white/5 border border-interface-border rounded px-3 py-2 space-y-1"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span
-                        className={`text-[10px] font-mono uppercase tracking-wider rounded px-2 py-0.5 ${getActivityBadgeClasses(activityType)}`}
-                      >
-                        {activityLabel}
-                      </span>
-                      <span className="text-[10px] font-mono text-accent-tan/90">
-                        {formatTime(activity.timestamp)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-[10px] font-mono uppercase tracking-wider rounded px-2 py-0.5 ${getActivityBadgeClasses(activityType)}`}
+                        >
+                          {activityLabel}
+                        </span>
+                        {activity.source === 'transcript' && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-[10px] px-2 py-0.5 h-6"
+                            onClick={() => toggleTranscriptExpanded(activity)}
+                          >
+                            <span className="material-symbols-outlined text-xs">
+                              {expanded ? 'expand_less' : 'expand_more'}
+                            </span>
+                            {expanded ? 'Collapse' : 'Expand'}
+                          </Button>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-mono text-accent-tan/90">{formatTime(activity.timestamp)}</span>
                     </div>
-                    <p className="text-xs font-mono text-white break-words whitespace-pre-wrap">
-                      {activity.message}
-                    </p>
-                    {activity.level.toLowerCase() === 'error' && detail && (
-                      <p className="text-xs font-mono text-signal-red break-words">Detail: {detail}</p>
+                    {expanded ? (
+                      <>
+                        <p className="text-xs font-mono text-white break-words whitespace-pre-wrap">
+                          {activity.message}
+                        </p>
+                        {activity.level.toLowerCase() === 'error' && detail && (
+                          <p className="text-xs font-mono text-signal-red break-words">Detail: {detail}</p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-xs font-mono text-accent-tan/90 break-words">
+                        {formatCollapsedPreview(activity.message)}
+                      </p>
                     )}
                     <p className="text-[10px] font-mono text-accent-tan/80">
                       {activity.executionStatus.toUpperCase()} · {activity.executionId} · {activity.source}
