@@ -244,11 +244,22 @@ export default function AgentRunPage() {
     return recentExecutions.find((execution) => isExecutionActive(execution.status)) ?? null
   }, [recentExecutions])
 
+  const activeRecentExecutions = useMemo(
+    () => recentExecutions.filter((execution) => isExecutionActive(execution.status)),
+    [recentExecutions]
+  )
+
   const activityLogsQuery = useQuery({
     queryKey: ['agent-run-activity', agentId, recentExecutions.map((item) => item.id).join(',')],
     queryFn: async (): Promise<AgentActivityLog[]> => {
+      // Fetch logs for active executions plus the most recent completed execution for context
+      const executionsToFetch = [
+        ...activeRecentExecutions,
+        ...recentExecutions.filter((e) => !isExecutionActive(e.status)).slice(0, 1),
+      ]
+
       const logSets = await Promise.all(
-        recentExecutions.map(async (execution) => {
+        executionsToFetch.map(async (execution) => {
           try {
             const response = await executionsApi.getLogs(execution.id)
             return response.data.map((log) => ({
