@@ -12,7 +12,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.database import get_db
+from app.database import async_session_maker, get_db
 from app.models import Agent, Execution, ExecutionLog, User, Workflow
 from app.routers.auth import get_current_active_user
 from app.schemas import ExecutionCreate, ExecutionResponse, ExecutionUpdate
@@ -214,12 +214,15 @@ async def stream_execution(
         seen_log_ids: set[str] = set()
 
         while True:
-            result = await db.execute(
-                select(Execution)
-                .options(selectinload(Execution.logs))
-                .where(Execution.id == execution_id)
-            )
-            current_execution = result.scalar_one()
+            # Use a fresh session each poll so long-lived identity maps do not cache
+            # log collections and hide newly committed rows from active executions.
+            async with async_session_maker() as stream_db:
+                result = await stream_db.execute(
+                    select(Execution)
+                    .options(selectinload(Execution.logs))
+                    .where(Execution.id == execution_id)
+                )
+                current_execution = result.scalar_one()
 
             for log in current_execution.logs:
                 log_id = str(log.id)

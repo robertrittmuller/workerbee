@@ -27,6 +27,8 @@ type AgentActivityLog = {
   data?: Record<string, unknown> | null
 }
 
+type CreateAgentTab = 'basic' | 'advanced'
+
 function getExecutionTimestamp(execution: Execution): number {
   const timestamp = execution.started_at ?? execution.completed_at
   if (!timestamp) {
@@ -152,6 +154,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient()
 
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
+  const [createAgentTab, setCreateAgentTab] = useState<CreateAgentTab>('basic')
   const [newAgentName, setNewAgentName] = useState('')
   const [newAgentDescription, setNewAgentDescription] = useState('')
   const [templateId, setTemplateId] = useState('')
@@ -580,7 +583,19 @@ export default function Dashboard() {
   }
 
   const createAgentMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (mode: CreateAgentTab) => {
+      if (mode === 'basic') {
+        const resourceIds = await resolveResourceIdsFromGroups(newAgentGroupIds)
+        return (
+          await agentsApi.createFromTemplate({
+            template_id: 'blank-template',
+            name: newAgentName,
+            description: newAgentDescription || undefined,
+            resource_ids: resourceIds,
+          })
+        ).data
+      }
+
       const resourceIds = await resolveResourceIdsFromGroups(newAgentGroupIds)
       return (
         await agentsApi.createFromTemplate({
@@ -592,7 +607,7 @@ export default function Dashboard() {
       ).data
     },
     onSuccess: async (agent) => {
-      setSuccessMessage('Agent created from template and ready to deploy.')
+      setSuccessMessage('Agent created and ready to deploy.')
       setErrorMessage(null)
       setNewAgentName('')
       setNewAgentDescription('')
@@ -664,7 +679,12 @@ export default function Dashboard() {
     setErrorMessage(null)
     setSuccessMessage(null)
 
-    if (!templateId) {
+    if (createAgentTab === 'basic' && !newAgentDescription.trim()) {
+      setErrorMessage('Agent prompt is required.')
+      return
+    }
+
+    if (createAgentTab === 'advanced' && !templateId) {
       setErrorMessage('Select an agent template.')
       return
     }
@@ -674,7 +694,7 @@ export default function Dashboard() {
       return
     }
 
-    createAgentMutation.mutate()
+    createAgentMutation.mutate(createAgentTab)
   }
 
   const handleCreateResourceGroup = () => {
@@ -962,8 +982,35 @@ export default function Dashboard() {
               <div>
                 <h1 className="font-mono font-bold text-lg text-white">Create New Agent</h1>
                 <p className="text-accent-tan text-xs font-mono mt-1">
-                  Build an agent from markdown template files and link resource groups.
+                  {createAgentTab === 'basic'
+                    ? 'Start fast with a name and system prompt.'
+                    : 'Build an agent from markdown template files and link resource groups.'}
                 </p>
+              </div>
+
+              <div className="inline-flex rounded border border-interface-border bg-white/5 p-1">
+                <button
+                  type="button"
+                  onClick={() => setCreateAgentTab('basic')}
+                  className={`px-3 py-1 text-xs font-mono uppercase tracking-wider transition-colors ${
+                    createAgentTab === 'basic'
+                      ? 'bg-primary/20 text-primary border border-primary/40 rounded'
+                      : 'text-accent-tan'
+                  }`}
+                >
+                  Basic
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreateAgentTab('advanced')}
+                  className={`px-3 py-1 text-xs font-mono uppercase tracking-wider transition-colors ${
+                    createAgentTab === 'advanced'
+                      ? 'bg-primary/20 text-primary border border-primary/40 rounded'
+                      : 'text-accent-tan'
+                  }`}
+                >
+                  Advanced
+                </button>
               </div>
 
               <form className="space-y-4" onSubmit={handleCreateAgent}>
@@ -980,36 +1027,43 @@ export default function Dashboard() {
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[11px] uppercase tracking-wider font-mono text-accent-tan">
-                    Template
-                  </label>
-                  <select
-                    value={templateId}
-                    onChange={(event) => setTemplateId(event.target.value)}
-                    className="w-full bg-white/5 border border-interface-border rounded px-3 py-2 text-sm font-mono"
-                  >
-                    {(templatesQuery.data ?? []).map((template) => (
-                      <option key={template.id} value={template.id}>
-                        {template.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[11px] text-accent-tan/80 font-mono">
-                    {templatesQuery.data?.find((template) => template.id === templateId)?.description ??
-                      'No template selected.'}
-                  </p>
-                </div>
+                {createAgentTab === 'advanced' && (
+                  <div className="space-y-1">
+                    <label className="text-[11px] uppercase tracking-wider font-mono text-accent-tan">
+                      Template
+                    </label>
+                    <select
+                      value={templateId}
+                      onChange={(event) => setTemplateId(event.target.value)}
+                      className="w-full bg-white/5 border border-interface-border rounded px-3 py-2 text-sm font-mono"
+                    >
+                      {(templatesQuery.data ?? []).map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-accent-tan/80 font-mono">
+                      {templatesQuery.data?.find((template) => template.id === templateId)?.description ??
+                        'No template selected.'}
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-1">
                   <label className="text-[11px] uppercase tracking-wider font-mono text-accent-tan">
-                    Description
+                    {createAgentTab === 'basic' ? 'Prompt' : 'Agent System Prompt'}
                   </label>
                   <textarea
                     value={newAgentDescription}
                     onChange={(event) => setNewAgentDescription(event.target.value)}
                     className="w-full min-h-24 bg-white/5 border border-interface-border rounded px-3 py-2 text-sm font-mono"
-                    placeholder="What this agent is expected to do"
+                    placeholder={
+                      createAgentTab === 'basic'
+                        ? 'Describe the role, constraints, and expected behavior.'
+                        : 'What this agent is expected to do'
+                    }
+                    required={createAgentTab === 'basic'}
                   />
                 </div>
 

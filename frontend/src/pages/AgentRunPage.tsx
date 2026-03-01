@@ -217,102 +217,6 @@ function formatCollapsedPreview(message: string): string {
   return `${compact.slice(0, 137)}...`
 }
 
-function normalizeMessageRole(role: unknown): ActivityRole {
-  if (typeof role !== 'string') {
-    return 'other'
-  }
-  const normalized = role.toLowerCase()
-  if (
-    normalized === 'system' ||
-    normalized === 'user' ||
-    normalized === 'assistant' ||
-    normalized === 'tool'
-  ) {
-    return normalized
-  }
-  return 'other'
-}
-
-function normalizeMessageContent(content: unknown): string {
-  if (typeof content === 'string') {
-    return content.trim()
-  }
-  if (Array.isArray(content)) {
-    const parts = content
-      .map((part) => {
-        if (typeof part === 'string') {
-          return part.trim()
-        }
-        if (part && typeof part === 'object') {
-          const text = (part as Record<string, unknown>).text
-          if (typeof text === 'string') {
-            return text.trim()
-          }
-        }
-        return ''
-      })
-      .filter(Boolean)
-    return parts.join('\n').trim()
-  }
-  if (content == null) {
-    return ''
-  }
-  return String(content).trim()
-}
-
-function getTranscriptActivity(execution: Execution): AgentActivityLog[] {
-  const resultPayload = execution.result
-  if (!resultPayload || typeof resultPayload !== 'object') {
-    return []
-  }
-
-  const runResult = (resultPayload as Record<string, unknown>).run_result
-  if (!runResult || typeof runResult !== 'object') {
-    return []
-  }
-
-  const rawMessages = (runResult as Record<string, unknown>).messages
-  if (!Array.isArray(rawMessages)) {
-    return []
-  }
-
-  const baseTime = getExecutionTimestamp(execution) || Date.now()
-  const messageCount = rawMessages.length || 1
-
-  return rawMessages
-    .map((entry, index) => {
-      if (!entry || typeof entry !== 'object') {
-        return null
-      }
-      const messageEntry = entry as Record<string, unknown>
-      const message = normalizeMessageContent(messageEntry.content)
-      if (!message) {
-        return null
-      }
-
-      const spreadMs = Math.floor((index / messageCount) * 1000)
-      const timestamp = new Date(baseTime + spreadMs).toISOString()
-      const role = normalizeMessageRole(messageEntry.role)
-
-      return {
-        id: `transcript-${execution.id}-${index + 1}`,
-        executionId: execution.id,
-        executionStatus: execution.status,
-        timestamp,
-        level: role === 'assistant' ? 'info' : 'debug',
-        message,
-        source: 'transcript' as const,
-        role,
-        data: {
-          role,
-          source: 'transcript',
-          message_index: index + 1,
-        },
-      } satisfies AgentActivityLog
-    })
-    .filter((entry): entry is AgentActivityLog => Boolean(entry))
-}
-
 function getActivityLabel(activity: AgentActivityLog, type: ActivityType): string {
   if (activity.source === 'transcript') {
     if (activity.role === 'assistant') {
@@ -345,7 +249,7 @@ export default function AgentRunPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [streamError, setStreamError] = useState<string | null>(null)
   const [streamLogs, setStreamLogs] = useState<AgentActivityLog[]>([])
-  const [transcriptExpansionOverrides, setTranscriptExpansionOverrides] = useState<
+  const [activityExpansionOverrides, setActivityExpansionOverrides] = useState<
     Record<string, boolean>
   >({})
   const [downloadingOutputId, setDownloadingOutputId] = useState<string | null>(null)
@@ -494,41 +398,23 @@ export default function AgentRunPage() {
     for (const streamLog of streamLogs) {
       merged.set(streamLog.id, streamLog)
     }
-    for (const execution of recentExecutions) {
-      for (const transcriptEntry of getTranscriptActivity(execution)) {
-        merged.set(transcriptEntry.id, transcriptEntry)
-      }
-    }
 
     return [...merged.values()]
       .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp))
       .slice(-250)
-  }, [activityLogsQuery.data, recentExecutions, streamLogs])
-
-  const latestTranscriptActivityId = useMemo(() => {
-    for (let index = mergedActivity.length - 1; index >= 0; index -= 1) {
-      if (mergedActivity[index].source === 'transcript') {
-        return mergedActivity[index].id
-      }
-    }
-    return null
-  }, [mergedActivity])
+  }, [activityLogsQuery.data, streamLogs])
 
   useEffect(() => {
-    setTranscriptExpansionOverrides((current) => {
+    setActivityExpansionOverrides((current) => {
       const keys = Object.keys(current)
       if (keys.length === 0) {
         return current
       }
-      const activeTranscriptIds = new Set(
-        mergedActivity
-          .filter((activity) => activity.source === 'transcript')
-          .map((activity) => activity.id)
-      )
+      const activeActivityIds = new Set(mergedActivity.map((activity) => activity.id))
       let changed = false
       const next: Record<string, boolean> = {}
       for (const [key, value] of Object.entries(current)) {
-        if (activeTranscriptIds.has(key)) {
+        if (activeActivityIds.has(key)) {
           next[key] = value
         } else {
           changed = true
@@ -538,37 +424,31 @@ export default function AgentRunPage() {
     })
   }, [mergedActivity])
 
-  const isTranscriptExpanded = useCallback(
+  const isActivityExpanded = useCallback(
     (activity: AgentActivityLog): boolean => {
-      if (activity.source !== 'transcript') {
-        return true
-      }
-      const override = transcriptExpansionOverrides[activity.id]
+      const override = activityExpansionOverrides[activity.id]
       if (typeof override === 'boolean') {
         return override
       }
-      return activity.id === latestTranscriptActivityId
+      return true
     },
-    [latestTranscriptActivityId, transcriptExpansionOverrides]
+    [activityExpansionOverrides]
   )
 
-  const toggleTranscriptExpanded = useCallback(
+  const toggleActivityExpanded = useCallback(
     (activity: AgentActivityLog) => {
-      if (activity.source !== 'transcript') {
-        return
-      }
-      setTranscriptExpansionOverrides((current) => {
+      setActivityExpansionOverrides((current) => {
         const currentValue =
           typeof current[activity.id] === 'boolean'
             ? current[activity.id]
-            : activity.id === latestTranscriptActivityId
+            : true
         return {
           ...current,
           [activity.id]: !currentValue,
         }
       })
     },
-    [latestTranscriptActivityId]
+    []
   )
 
   const isBusy =
@@ -1043,8 +923,8 @@ export default function AgentRunPage() {
                 <h2 className="font-mono font-bold text-sm">Live Agent Activity</h2>
                 <p className="text-[11px] font-mono text-accent-tan mt-1">
                   {activeExecution
-                    ? 'Showing execution status plus run transcript messages as they become available.'
-                    : 'Showing execution status and recent run transcript messages.'}
+                    ? 'Showing one real-time activity stream while the agent runs.'
+                    : 'Showing recent execution activity logs.'}
                 </p>
               </div>
 
@@ -1108,7 +988,9 @@ export default function AgentRunPage() {
                 const activityType = inferActivityType(activity)
                 const activityLabel = getActivityLabel(activity, activityType)
                 const detail = readErrorDetail(activity.data)
-                const expanded = isTranscriptExpanded(activity)
+                const expanded = isActivityExpanded(activity)
+                const canToggleExpansion =
+                  activity.message.trim().length > 140 || activity.message.includes('\n')
 
                 return (
                   <div
@@ -1122,13 +1004,13 @@ export default function AgentRunPage() {
                         >
                           {activityLabel}
                         </span>
-                        {activity.source === 'transcript' && (
+                        {canToggleExpansion && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
                             className="text-[10px] px-2 py-0.5 h-6"
-                            onClick={() => toggleTranscriptExpanded(activity)}
+                            onClick={() => toggleActivityExpanded(activity)}
                           >
                             <span className="material-symbols-outlined text-xs">
                               {expanded ? 'expand_less' : 'expand_more'}

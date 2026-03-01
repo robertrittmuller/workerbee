@@ -25,6 +25,7 @@ from app.agent.sandbox import (
     read_execution_output_file,
     write_execution_output_file,
 )
+from app.database import async_session_maker
 from app.models import Execution, ExecutionLog
 from app.config import settings
 
@@ -106,6 +107,78 @@ class AgentExecutor:
         state.setdefault("artifacts", [])
         state.setdefault("todo", [])
         return state
+
+    @staticmethod
+    def _sanitize_log_payload(value: Any) -> Any:
+        """Convert arbitrary values into JSON-safe payloads for ExecutionLog.data."""
+        if value is None or isinstance(value, (str, int, float, bool)):
+            return value
+        if isinstance(value, dict):
+            return {
+                str(key): AgentExecutor._sanitize_log_payload(item)
+                for key, item in value.items()
+            }
+        if isinstance(value, (list, tuple, set)):
+            return [AgentExecutor._sanitize_log_payload(item) for item in value]
+        return str(value)
+
+    @staticmethod
+    def _truncate_for_log(value: Any, *, limit: int = 220) -> str:
+        """Render a compact single-line string for log messages."""
+        text = str(value or "").replace("\n", " ").strip()
+        if len(text) <= limit:
+            return text
+        return f"{text[: limit - 3]}..."
+
+    def _summarize_action_for_log(self, action: dict[str, Any]) -> str:
+        """Create a short human-readable summary for an action."""
+        action_type = str(action.get("type", "unknown")).strip().lower() or "unknown"
+        if action_type == "run":
+            return f"run `{self._truncate_for_log(action.get('command', ''), limit=140)}`"
+        if action_type in {"run_python"}:
+            return f"{action_type} (python code)"
+        if action_type in {
+            "write_file",
+            "read_file",
+            "patch_file",
+            "stat_file",
+            "read_input_file",
+        }:
+            return f"{action_type} `{self._truncate_for_log(action.get('path', ''), limit=120)}`"
+        if action_type in {"list_files", "list_input_files"}:
+            path_value = action.get("path") or (
+                self.sandbox_input_dir if action_type == "list_input_files" else self.sandbox_output_dir
+            )
+            return f"{action_type} `{self._truncate_for_log(path_value, limit=120)}`"
+        return action_type
+
+    async def _emit_progress_log(
+        self,
+        message: str,
+        *,
+        level: str = "info",
+        data: dict[str, Any] | None = None,
+    ) -> None:
+        """Persist an execution log line for real-time activity streaming."""
+        trimmed = message.strip()
+        if not trimmed:
+            return
+        try:
+            async with async_session_maker() as log_db:
+                log_db.add(
+                    ExecutionLog(
+                        execution_id=self.execution_id,
+                        level=level,
+                        message=trimmed,
+                        data=self._sanitize_log_payload(data)
+                        if data is not None
+                        else None,
+                    )
+                )
+                await log_db.commit()
+        except Exception:
+            # Progress logging must never interrupt agent execution.
+            return
     
     async def _init_node(self, state: AgentState) -> AgentState:
         """Initialize the agent execution."""
@@ -188,6 +261,10 @@ class AgentExecutor:
         """Execute the planned steps."""
         state = self._ensure_state_defaults(state)
         state["current_step"] = "execute"
+        await self._emit_progress_log(
+            "Entering execute stage.",
+            data={"stage": "execute"},
+        )
         budgets = self._resolve_execution_budgets()
         max_total_actions = budgets["max_total_actions"]
         max_actions_per_iteration = budgets["max_actions_per_iteration"]
@@ -283,24 +360,65 @@ class AgentExecutor:
                 state["errors"].append(
                     f"Execution exceeded runtime budget ({max_runtime_seconds}s)."
                 )
+                await self._emit_progress_log(
+                    f"Execution stopped: runtime budget exceeded ({max_runtime_seconds}s).",
+                    level="warning",
+                    data={
+                        "stage": "execute",
+                        "iteration": iteration,
+                        "elapsed_seconds": elapsed_seconds,
+                    },
+                )
                 break
             if total_actions_executed >= max_total_actions:
                 state["errors"].append(
                     f"Execution exhausted action budget ({max_total_actions} actions)."
+                )
+                await self._emit_progress_log(
+                    f"Execution stopped: action budget exhausted ({max_total_actions}).",
+                    level="warning",
+                    data={
+                        "stage": "execute",
+                        "iteration": iteration,
+                        "total_actions_executed": total_actions_executed,
+                    },
                 )
                 break
             if iteration >= max_iterations:
                 state["errors"].append(
                     f"Execution reached iteration budget ({max_iterations} iterations)."
                 )
+                await self._emit_progress_log(
+                    f"Execution stopped: iteration budget reached ({max_iterations}).",
+                    level="warning",
+                    data={"stage": "execute", "iteration": iteration},
+                )
                 break
             if stagnant_iterations >= max_stagnant_iterations:
                 state["errors"].append(
                     "Execution stopped due to repeated stalled iterations without measurable progress."
                 )
+                await self._emit_progress_log(
+                    "Execution stopped after repeated stalled iterations.",
+                    level="warning",
+                    data={
+                        "stage": "execute",
+                        "iteration": iteration,
+                        "stagnant_iterations": stagnant_iterations,
+                    },
+                )
                 break
 
             iteration += 1
+            await self._emit_progress_log(
+                f"Planning execution iteration {iteration}.",
+                level="debug",
+                data={
+                    "stage": "execute",
+                    "iteration": iteration,
+                    "remaining_action_budget": max_total_actions - total_actions_executed,
+                },
+            )
             response = await self._call_llm(state["messages"])
             state["messages"].append({
                 "role": "assistant",
@@ -311,6 +429,11 @@ class AgentExecutor:
             if planned_actions is None:
                 state["errors"].append(
                     f"Execution iteration {iteration} did not provide valid action JSON."
+                )
+                await self._emit_progress_log(
+                    f"Iteration {iteration} returned invalid action JSON.",
+                    level="warning",
+                    data={"stage": "execute", "iteration": iteration},
                 )
                 stagnant_iterations += 1
                 state["messages"].append(
@@ -352,6 +475,14 @@ class AgentExecutor:
                 state["output_files"] = output_snapshot
                 detected_outputs = self._detected_nonempty_output_paths(state)
                 if detected_outputs and goal_status == "done" and (todo_complete or not todo_items):
+                    await self._emit_progress_log(
+                        "No further actions required; non-empty outputs detected.",
+                        data={
+                            "stage": "execute",
+                            "iteration": iteration,
+                            "output_count": len(detected_outputs),
+                        },
+                    )
                     state["messages"].append(
                         {
                             "role": "user",
@@ -367,6 +498,15 @@ class AgentExecutor:
                     and remaining_action_budget > 0
                 ):
                     auto_diagnostics_ran = True
+                    await self._emit_progress_log(
+                        "No actions returned repeatedly; running automatic diagnostics.",
+                        level="warning",
+                        data={
+                            "stage": "execute",
+                            "iteration": iteration,
+                            "consecutive_no_action_iterations": consecutive_no_action_iterations,
+                        },
+                    )
                     state["messages"].append(
                         {
                             "role": "user",
@@ -389,6 +529,16 @@ class AgentExecutor:
                         },
                     ][:max_actions_this_iteration]
                 else:
+                    await self._emit_progress_log(
+                        "No actions returned for this iteration.",
+                        level="warning",
+                        data={
+                            "stage": "execute",
+                            "iteration": iteration,
+                            "goal_status": goal_status,
+                            "todo_complete": todo_complete,
+                        },
+                    )
                     stagnant_iterations += 1
                     if goal_status == "done" and todo_complete and not detected_outputs:
                         no_action_message = (
@@ -410,10 +560,28 @@ class AgentExecutor:
 
             round_failures = 0
             consecutive_no_action_iterations = 0
+            await self._emit_progress_log(
+                f"Iteration {iteration}: executing {len(actions)} action(s).",
+                data={
+                    "stage": "execute",
+                    "iteration": iteration,
+                    "action_count": len(actions),
+                },
+            )
             for action in actions:
                 step_index = next_step_index
                 next_step_index += 1
                 total_actions_executed += 1
+                action_type = str(action.get("type", "unknown")).strip().lower() or "unknown"
+                await self._emit_progress_log(
+                    f"Running action {step_index}: {self._summarize_action_for_log(action)}",
+                    data={
+                        "stage": "execute",
+                        "iteration": iteration,
+                        "step_index": step_index,
+                        "action_type": action_type,
+                    },
+                )
                 result = await self._execute_agent_action(action, step_index=step_index)
                 state["code_blocks"].append(
                     {
@@ -438,6 +606,30 @@ class AgentExecutor:
                     stderr_value = str(result.get("stderr", "")).strip()
                     if stderr_value:
                         state["errors"].append(stderr_value[:1000])
+                    await self._emit_progress_log(
+                        f"Action {step_index} failed: {self._truncate_for_log(stderr_value or 'unknown error')}",
+                        level="warning",
+                        data={
+                            "stage": "execute",
+                            "iteration": iteration,
+                            "step_index": step_index,
+                            "action_type": action_type,
+                            "success": False,
+                            "exit_code": result.get("exit_code"),
+                        },
+                    )
+                else:
+                    await self._emit_progress_log(
+                        f"Action {step_index} succeeded.",
+                        data={
+                            "stage": "execute",
+                            "iteration": iteration,
+                            "step_index": step_index,
+                            "action_type": action_type,
+                            "success": True,
+                            "exit_code": result.get("exit_code"),
+                        },
+                    )
 
                 if total_actions_executed >= max_total_actions:
                     break
@@ -473,6 +665,14 @@ class AgentExecutor:
                 stagnant_iterations += 1
 
             if unique_round_outputs and (goal_status == "done" or (todo_complete and round_failures == 0)):
+                await self._emit_progress_log(
+                    f"Execution produced {len(unique_round_outputs)} non-empty output file(s); leaving execute stage.",
+                    data={
+                        "stage": "execute",
+                        "iteration": iteration,
+                        "output_count": len(unique_round_outputs),
+                    },
+                )
                 state["messages"].append(
                     {
                         "role": "user",
@@ -511,6 +711,11 @@ class AgentExecutor:
         if not self._detected_nonempty_output_paths(state):
             fallback_step_index = next_step_index
             fallback_code = self._fallback_output_code(state)
+            await self._emit_progress_log(
+                "No non-empty outputs detected; running fallback output generation.",
+                level="warning",
+                data={"stage": "execute", "step_index": fallback_step_index},
+            )
             fallback_result = await self._execute_fallback_output(
                 state,
                 code=fallback_code,
@@ -535,9 +740,23 @@ class AgentExecutor:
             fallback_outputs = fallback_result.get("output_files")
             if isinstance(fallback_outputs, list) and fallback_outputs:
                 state["output_files"] = fallback_outputs
+                await self._emit_progress_log(
+                    "Fallback output generation completed.",
+                    level="warning",
+                    data={
+                        "stage": "execute",
+                        "step_index": fallback_step_index,
+                        "output_count": len(fallback_outputs),
+                    },
+                )
             else:
                 state["errors"].append(
                     "No output files were detected in the sandbox output directory after execution."
+                )
+                await self._emit_progress_log(
+                    "Fallback output generation did not produce detectable outputs.",
+                    level="error",
+                    data={"stage": "execute", "step_index": fallback_step_index},
                 )
 
         return state
@@ -2061,6 +2280,7 @@ class AgentExecutor:
     async def run(self) -> dict:
         """Run the agent execution."""
         try:
+            await self._emit_progress_log("Agent runtime initializing workspace.")
             prepared = await prepare_sandbox_workspace(self.execution_id, self.input_files)
             self.sandbox_input_dir = str(prepared.get("input_dir", self.sandbox_input_dir))
             self.sandbox_output_dir = str(prepared.get("output_dir", self.sandbox_output_dir))
@@ -2075,16 +2295,41 @@ class AgentExecutor:
                 self.sandbox_stage_warnings.append(
                     f"Capability probe failed in sandbox: {exc}"
                 )
+            await self._emit_progress_log(
+                "Sandbox workspace prepared.",
+                data={
+                    "stage": "init",
+                    "input_dir": self.sandbox_input_dir,
+                    "output_dir": self.sandbox_output_dir,
+                    "warning_count": len(self.sandbox_stage_warnings),
+                },
+            )
 
             state = self._ensure_state_defaults(self.state)
+            await self._emit_progress_log("Entering initialization stage.", data={"stage": "init"})
             state = await self._init_node(state)
+            await self._emit_progress_log("Entering analysis stage.", data={"stage": "analyze"})
             state = await self._analyze_node(state)
+            await self._emit_progress_log("Entering planning stage.", data={"stage": "plan"})
             state = await self._plan_node(state)
+            await self._emit_progress_log("Entering execution stage.", data={"stage": "execute"})
             state = await self._execute_node(state)
+            await self._emit_progress_log("Entering output generation stage.", data={"stage": "generate_output"})
             state = await self._generate_output_node(state)
+            await self._emit_progress_log("Entering validation stage.", data={"stage": "validate"})
             final_state = await self._validate_node(state)
             execution_success = self._execution_succeeded(final_state)
             failure_reason = None if execution_success else self._execution_failure_reason(final_state)
+            await self._emit_progress_log(
+                "Agent runtime finished.",
+                level="info" if execution_success else "error",
+                data={
+                    "stage": "complete",
+                    "success": execution_success,
+                    "error": failure_reason,
+                    "output_count": len(self._detected_nonempty_output_paths(final_state)),
+                },
+            )
             return {
                 "success": execution_success,
                 "error": failure_reason,
@@ -2095,12 +2340,22 @@ class AgentExecutor:
                 "sandbox_warnings": self.sandbox_stage_warnings,
             }
         except SandboxRuntimeError as e:
+            await self._emit_progress_log(
+                f"Agent runtime failed with sandbox error: {self._truncate_for_log(e)}",
+                level="error",
+                data={"stage": "error", "error_type": "sandbox"},
+            )
             return {
                 "success": False,
                 "error": f"Sandbox runtime error: {e}",
                 "state": dict(self.state),
             }
         except Exception as e:
+            await self._emit_progress_log(
+                f"Agent runtime failed: {self._truncate_for_log(e)}",
+                level="error",
+                data={"stage": "error", "error_type": "runtime"},
+            )
             return {
                 "success": False,
                 "error": str(e),
