@@ -3,7 +3,7 @@
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,15 +22,27 @@ from app.schemas import Token, UserCreate, UserLogin, UserResponse
 
 router = APIRouter()
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None, Depends(optional_security)
+    ],
     db: Annotated[AsyncSession, Depends(get_db)],
+    token: Annotated[str | None, Query()] = None,
 ) -> User:
     """Get the current authenticated user."""
-    token = credentials.credentials
-    user_id = verify_token(token)
+    bearer_token = credentials.credentials if credentials is not None else None
+    auth_token = bearer_token or token
+    if not auth_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    user_id = verify_token(auth_token)
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

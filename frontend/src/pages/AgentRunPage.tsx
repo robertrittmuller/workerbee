@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, type CSSP
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
+import { MarkdownContent } from '@/components/ui/MarkdownContent'
 import {
   Agent,
   Execution,
@@ -45,6 +46,43 @@ function getExecutionTimestamp(execution: Execution): number {
 
 function isExecutionActive(status: Execution['status']): boolean {
   return status === 'pending' || status === 'running'
+}
+
+function isViewableOutput(output: RecentOutputFile): boolean {
+  const filename = output.filename.toLowerCase()
+  const contentType = output.content_type.toLowerCase()
+  const outputType = output.output_type?.toLowerCase() ?? ''
+
+  if (['markdown', 'text', 'json', 'csv'].includes(outputType)) {
+    return true
+  }
+
+  if (contentType.startsWith('text/')) {
+    return true
+  }
+
+  if (
+    contentType === 'application/json' ||
+    contentType.endsWith('+json') ||
+    contentType === 'application/xml' ||
+    contentType.endsWith('+xml') ||
+    contentType === 'application/yaml' ||
+    contentType === 'application/x-yaml'
+  ) {
+    return true
+  }
+
+  return (
+    filename.endsWith('.md') ||
+    filename.endsWith('.markdown') ||
+    filename.endsWith('.txt') ||
+    filename.endsWith('.json') ||
+    filename.endsWith('.csv') ||
+    filename.endsWith('.log') ||
+    filename.endsWith('.yaml') ||
+    filename.endsWith('.yml') ||
+    filename.endsWith('.xml')
+  )
 }
 
 function formatTime(timestamp: string): string {
@@ -311,6 +349,10 @@ export default function AgentRunPage() {
     Record<string, boolean>
   >({})
   const [downloadingOutputId, setDownloadingOutputId] = useState<string | null>(null)
+  const [viewerOutputFile, setViewerOutputFile] = useState<RecentOutputFile | null>(null)
+  const [viewerOutputContent, setViewerOutputContent] = useState('')
+  const [viewerOutputError, setViewerOutputError] = useState<string | null>(null)
+  const [isViewerOutputLoading, setIsViewerOutputLoading] = useState(false)
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false)
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false)
 
@@ -779,6 +821,52 @@ export default function AgentRunPage() {
     }
   }
 
+  const closeOutputViewer = () => {
+    setViewerOutputFile(null)
+    setViewerOutputContent('')
+    setViewerOutputError(null)
+    setIsViewerOutputLoading(false)
+  }
+
+  const handleViewOutput = async (output: RecentOutputFile) => {
+    setViewerOutputFile(output)
+    setViewerOutputContent('')
+    setViewerOutputError(null)
+    setIsViewerOutputLoading(true)
+    setErrorMessage(null)
+    setSuccessMessage(null)
+
+    try {
+      const response = await outputsApi.downloadRecentFile(output.id)
+      const text = await (response.data as Blob).text()
+      setViewerOutputContent(text)
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'Failed to load output file'
+      setViewerOutputError(detail)
+      setErrorMessage(detail)
+    } finally {
+      setIsViewerOutputLoading(false)
+    }
+  }
+
+  const handleDownloadViewedOutput = () => {
+    if (!viewerOutputFile || !viewerOutputContent) {
+      return
+    }
+
+    const blob = new Blob([viewerOutputContent], {
+      type: viewerOutputFile.content_type || 'text/plain;charset=utf-8',
+    })
+    const href = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = href
+    anchor.download = viewerOutputFile.filename
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(href)
+  }
+
   const renderResource = (resource: FileResource) => {
     return (
       <div
@@ -807,17 +895,31 @@ export default function AgentRunPage() {
         </div>
         <p className="text-xs font-mono text-white break-words">{output.filename}</p>
         <p className="text-[10px] font-mono text-accent-tan/80">{formatFileSize(output.file_size)}</p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => void handleDownloadOutput(output)}
-          disabled={downloadingOutputId === output.id}
-          className="w-full"
-        >
-          <span className="material-symbols-outlined text-sm">download</span>
-          {downloadingOutputId === output.id ? 'Downloading...' : 'Download'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void handleDownloadOutput(output)}
+            disabled={downloadingOutputId === output.id}
+            className={isViewableOutput(output) ? 'flex-1' : 'w-full'}
+          >
+            <span className="material-symbols-outlined text-sm">download</span>
+            {downloadingOutputId === output.id ? 'Downloading...' : 'Download'}
+          </Button>
+          {isViewableOutput(output) && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void handleViewOutput(output)}
+              className="flex-1"
+            >
+              <span className="material-symbols-outlined text-sm">visibility</span>
+              View
+            </Button>
+          )}
+        </div>
       </div>
     )
   }
@@ -1189,6 +1291,57 @@ export default function AgentRunPage() {
           </div>
         )}
       </main>
+
+      {viewerOutputFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-bg-deep/80 backdrop-blur-sm"
+            onClick={closeOutputViewer}
+            aria-label="Close file viewer"
+          />
+          <div className="relative w-full max-w-4xl max-h-[85vh] wireframe-box bg-bg-sidebar p-5 space-y-4 flex flex-col">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-mono font-bold text-sm uppercase tracking-wide">
+                  Output Viewer
+                </h3>
+                <p className="text-xs font-mono text-accent-tan mt-1 break-all">
+                  {viewerOutputFile.filename}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadViewedOutput}
+                  disabled={isViewerOutputLoading}
+                >
+                  <span className="material-symbols-outlined text-sm">download</span>
+                  Download
+                </Button>
+                <Button variant="ghost" size="sm" onClick={closeOutputViewer}>
+                  Close
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-auto border border-interface-border rounded bg-bg-deep/40 p-4">
+              {isViewerOutputLoading && (
+                <p className="text-xs font-mono text-accent-tan">Loading file...</p>
+              )}
+              {!isViewerOutputLoading && viewerOutputError && (
+                <p className="text-xs font-mono text-signal-red break-words">
+                  {viewerOutputError}
+                </p>
+              )}
+              {!isViewerOutputLoading && !viewerOutputError && (
+                <MarkdownContent content={viewerOutputContent} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
