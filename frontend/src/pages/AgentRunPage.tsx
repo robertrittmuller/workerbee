@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { MarkdownContent } from '@/components/ui/MarkdownContent'
+import { WorkerBeeBrand } from '@/components/WorkerBeeBrand'
 import {
   Agent,
   Execution,
@@ -818,14 +819,7 @@ export default function AgentRunPage() {
   return (
     <div className="h-screen max-h-screen bg-bg-dark text-white flex flex-col overflow-hidden">
       <nav className="z-20 h-16 shrink-0 bg-bg-sidebar border-b border-interface-border flex items-center px-6 lg:px-12 justify-between">
-        <div className="flex items-center gap-3">
-          <div className="text-primary flex items-center justify-center border-2 border-primary p-1">
-            <span className="material-symbols-outlined text-2xl font-bold">smart_toy</span>
-          </div>
-          <span className="text-xl font-mono font-extrabold tracking-tighter uppercase crt-glow">
-            WorkerBee <span className="text-accent-tan font-normal text-xs">[RUN-CONSOLE]</span>
-          </span>
-        </div>
+        <WorkerBeeBrand code="[RUN-CONSOLE]" to="/dashboard" />
         <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>
           <span className="material-symbols-outlined text-sm">arrow_back</span>
           Dashboard

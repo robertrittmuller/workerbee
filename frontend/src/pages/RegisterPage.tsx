@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { PublicHeader } from '@/components/PublicHeader'
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -69,21 +70,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Navigation */}
-      <nav className="fixed top-0 w-full h-16 z-50 bg-bg-deep/40 flex items-center px-6 lg:px-12 justify-between backdrop-blur-md border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="text-primary flex items-center justify-center border border-primary/50 p-1">
-            <span className="material-symbols-outlined text-xl font-bold">grid_view</span>
-          </div>
-          <span className="text-xl font-mono font-extrabold tracking-tighter uppercase crt-glow">WorkerBee <span className="text-accent-tan font-normal text-xs">[AUTH-02]</span></span>
-        </div>
-        <div className="hidden md:flex items-center gap-8 font-mono text-[10px] uppercase tracking-[0.3em] text-accent-tan/60">
-          <span className="flex items-center gap-2">// SECURE_PERIMETER_ACTIVE</span>
-          <span className="flex items-center gap-2">// NODE: DC-04_CENTRAL</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <button className="font-mono text-[10px] uppercase tracking-widest text-accent-tan hover:text-white transition-colors border border-accent-tan/20 px-3 py-1 bg-white/5">Help</button>
-        </div>
-      </nav>
+      <PublicHeader code="[AUTH-02]" />
 
       {/* Main Content - Centered */}
       <main className="flex-grow relative z-10 flex items-center justify-center p-6 pt-24">

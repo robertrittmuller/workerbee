@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/Button'
 import { MarkdownContent } from '@/components/ui/MarkdownContent'
+import { WorkerBeeBrand } from '@/components/WorkerBeeBrand'
 import {
   Agent,
   Execution,
@@ -953,14 +954,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-bg-dark text-white">
       <nav className="sticky top-0 z-20 h-16 bg-bg-sidebar border-b border-interface-border flex items-center px-6 lg:px-12 justify-between">
-        <div className="flex items-center gap-3">
-          <div className="text-primary flex items-center justify-center border-2 border-primary p-1">
-            <span className="material-symbols-outlined text-2xl font-bold">smart_toy</span>
-          </div>
-          <span className="text-xl font-mono font-extrabold tracking-tighter uppercase crt-glow">
-            WorkerBee <span className="text-accent-tan font-normal text-xs">[AGENT-PORTAL]</span>
-          </span>
-        </div>
+        <WorkerBeeBrand code="[AGENT-PORTAL]" to="/dashboard" />
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-interface-border">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />

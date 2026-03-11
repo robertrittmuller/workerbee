@@ -1,32 +1,11 @@
 import { Link } from 'react-router-dom'
+import { PublicHeader } from '@/components/PublicHeader'
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-bg-deep">
       {/* Navigation */}
-      <nav className="fixed top-0 w-full h-16 z-50 bg-bg-deep/90 border-b border-interface-border flex items-center px-6 lg:px-12 justify-between backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="text-primary flex items-center justify-center border-2 border-primary p-1">
-            <span className="material-symbols-outlined text-2xl font-bold">grid_view</span>
-          </div>
-          <span className="text-xl font-mono font-extrabold tracking-tighter uppercase crt-glow">WorkerBee <span className="text-accent-tan font-normal text-xs">[DH-01]</span></span>
-        </div>
-        <div className="hidden md:flex items-center gap-8 font-mono text-xs uppercase tracking-widest text-accent-tan">
-          <a className="hover:text-primary transition-colors flex items-center gap-2" href="#features">// Product</a>
-          <a className="hover:text-primary transition-colors flex items-center gap-2" href="#pricing">// Pricing</a>
-          <a className="hover:text-primary transition-colors flex items-center gap-2" href="#">// Docs</a>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link to="/login">
-            <button className="font-mono text-xs uppercase tracking-widest text-accent-tan hover:text-white transition-colors">Login</button>
-          </Link>
-          <Link to="/login">
-            <button className="bg-primary text-bg-deep px-4 py-1.5 font-mono font-bold text-xs uppercase crt-button-glow">
-              Get Started
-            </button>
-          </Link>
-        </div>
-      </nav>
+      <PublicHeader code="[DH-01]" />
 
       {/* Hero Section */}
       <section className="relative min-h-screen pt-32 pb-20 px-6 flex flex-col items-center justify-center overflow-hidden border-b border-interface-border">

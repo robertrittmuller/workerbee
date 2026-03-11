@@ -325,7 +325,7 @@ The landing page introduces WorkerBee to new users with a clean, focused design 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  NAVIGATION BAR (h-16)                                          │
-│  [Logo] [Product] [Pricing] [Docs]        [Login] [Get Started] │
+│  [Logo] [Product] [Docs]                  [Login] [Get Started] │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  HERO SECTION                                                   │
