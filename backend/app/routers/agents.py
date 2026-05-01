@@ -377,7 +377,7 @@ def _snapshot_workspace_output_files() -> dict[str, tuple[int, int]]:
     """Snapshot workspace output files keyed by absolute path with size/mtime metadata."""
     snapshots: dict[str, tuple[int, int]] = {}
     candidate_dirs = [
-        Path(f"{settings.sandbox_workspace_root}/output"),
+        Path(settings.opencode_workspace_root) / "output",
         Path("workspace/output").resolve(),
     ]
     visited_dirs: set[Path] = set()
@@ -557,6 +557,7 @@ async def _process_agent_execution(
     llm_settings: dict[str, Any] | None,
     task_prompt: str | None,
     input_files: list[dict[str, str]],
+    opencode_agent: str = "general",
 ) -> None:
     """Execute a queued agent run and persist status/log transitions."""
     async with async_session_maker() as db:
@@ -582,8 +583,9 @@ async def _process_agent_execution(
             effective_agent_config.update(llm_settings)
 
         connectivity_error: str | None = None
-        if settings.litellm_base_url:
-            models_url = f"{settings.litellm_base_url.rstrip('/')}/models"
+        litellm_base_url = getattr(settings, "litellm_base_url", None)
+        if litellm_base_url:
+            models_url = f"{litellm_base_url.rstrip('/')}/models"
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
                     response = await client.get(models_url)
@@ -607,6 +609,7 @@ async def _process_agent_execution(
                     task_prompt=task_prompt or "Complete the assigned task.",
                     input_files=input_files,
                     output_config={},
+                    opencode_agent=opencode_agent,
                 )
         except Exception as exc:  # pragma: no cover - defensive failure path
             result = {
@@ -651,6 +654,15 @@ async def _process_agent_execution(
             if not output_text:
                 output_text = "Execution completed with no textual output."
             output_text = _strip_nul_text(output_text)
+
+            db.add(
+                ExecutionLog(
+                    execution_id=execution_id,
+                    level="info",
+                    message=f"Agent Output:\n\n{output_text}",
+                )
+            )
+            await db.flush()
 
             primary_output = _primary_output_artifact(execution_id, output_text)
             filename = primary_output["filename"]
@@ -1133,6 +1145,7 @@ async def run_agent(
             }
             for file in resolved_files
         ],
+        run_data.opencode_agent,
     )
     return execution
 

@@ -46,25 +46,14 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
 
-    # LLM Configuration
-    litellm_base_url: str = ""
-    litellm_api_key: str = ""
-    litellm_master_key: str = ""
-    llm_available_models: str = "gpt-4o-mini,gpt-4o,claude-3-5-sonnet-20241022"
-    llm_default_model: str = "gpt-4o-mini"
-    openai_api_key: str = ""
-    anthropic_api_key: str = ""
+    # LLM Configuration (for frontend UI)
+    llm_available_models: str = "gpt-4o-mini,gpt-4o,claude-3-5-sonnet-20241022,anthropic/claude-3-5-sonnet-20241022"
+    llm_default_model: str = "anthropic/claude-3-5-sonnet-20241022"
 
-    # Sandbox Configuration
-    sandbox_image: str = "workerbee-sandbox:latest"
-    sandbox_api_base_url: str = "http://sandbox:9000"
-    sandbox_workspace_root: str = "/workspace"
-    sandbox_timeout: int = 1800  # 30 minutes
-    sandbox_http_timeout: int = 120
-    sandbox_max_memory: str = "4g"
-    sandbox_max_cpu: str = "2"
-    sandbox_max_disk: str = "10g"
-    sandbox_capability_cache_seconds: int = 300
+    # OpenCode Server Configuration
+    opencode_api_base_url: str = "http://opencode:4096"
+    opencode_password: str = "workerbee_secret"
+    opencode_workspace_root: str = "/workspace"
 
     # File Upload
     max_file_size: int = 100 * 1024 * 1024  # 100MB

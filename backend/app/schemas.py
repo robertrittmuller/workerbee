@@ -208,6 +208,7 @@ class AgentRunRequest(BaseModel):
     task_id: Optional[uuid.UUID] = None
     task_prompt: Optional[str] = None
     resource_ids: Optional[list[uuid.UUID]] = None
+    opencode_agent: str = Field(default="general", description="The OpenCode agent mode to use: build, explore, general, plan")
 
 
 class AgentUpdate(BaseModel):

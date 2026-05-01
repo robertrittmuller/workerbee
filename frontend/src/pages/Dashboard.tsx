@@ -42,7 +42,7 @@ function inferActivityType(activity: AgentActivityLog): ActivityType {
   const payload = `${activity.message} ${JSON.stringify(activity.data ?? {})}`.toLowerCase()
   const level = activity.level.toLowerCase()
 
-  if (level === 'error' || payload.includes('error') || payload.includes('fail')) {
+  if (level === 'error') {
     return 'error'
   }
   if (payload.includes('tool')) {

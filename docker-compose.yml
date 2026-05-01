@@ -1,4 +1,3 @@
-version: "3.8"
 
 services:
   # PostgreSQL Database
@@ -78,7 +77,8 @@ services:
       - LLM_AVAILABLE_MODELS=${LLM_AVAILABLE_MODELS:-}
       - LLM_DEFAULT_MODEL=${LLM_DEFAULT_MODEL:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ANTHROPIC_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - SANDBOX_API_BASE_URL=${SANDBOX_API_BASE_URL:-http://sandbox:9000}
       - SANDBOX_WORKSPACE_ROOT=${SANDBOX_WORKSPACE_ROOT:-/workspace}
       - SANDBOX_TIMEOUT=${SANDBOX_TIMEOUT:-1800}
@@ -87,6 +87,7 @@ services:
     volumes:
       - ./backend:/app
       - backend_uploads:/app/uploads
+      - opencode_workspace:/workspace
     ports:
       - "8000:8000"
     depends_on:
@@ -115,26 +116,23 @@ services:
     networks:
       - workerbee-network
 
-  # Agent Sandbox Container (for isolated code execution)
-  sandbox:
+  # OpenCode Server Container
+  opencode:
     build:
-      context: ./sandbox
+      context: ./opencode
       dockerfile: Dockerfile
-    container_name: workerbee-sandbox
-    privileged: false
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: false
+    container_name: workerbee-opencode
     volumes:
-      - sandbox_tmp:/tmp
-      - sandbox_workspace:/workspace
+      - ./opencode:/root/.config/opencode
+      - opencode_workspace:/workspace
     environment:
-      - SANDBOX_WORKSPACE_ROOT=/workspace
-      - SANDBOX_MAX_FILE_SIZE_BYTES=52428800
+      - OPENCODE_SERVER_PASSWORD=workerbee_secret
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://openrouter.ai/api/v1}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-https://openrouter.ai/api/v1}
     ports:
-      - "9002:9000"
+      - "4096:4096"
     networks:
       - workerbee-network
 
@@ -143,8 +141,7 @@ volumes:
   minio_data:
   redis_data:
   backend_uploads:
-  sandbox_tmp:
-  sandbox_workspace:
+  opencode_workspace:
 
 networks:
   workerbee-network:

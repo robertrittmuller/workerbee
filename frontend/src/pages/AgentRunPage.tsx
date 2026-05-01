@@ -33,6 +33,7 @@ type AgentActivityLog = {
 type QueuedCommand = {
   id: string
   prompt: string
+  agentMode: string
   queuedAt: string
 }
 
@@ -131,7 +132,7 @@ function inferActivityType(activity: AgentActivityLog): ActivityType {
   const payload = `${activity.message} ${JSON.stringify(activity.data ?? {})}`.toLowerCase()
   const level = activity.level.toLowerCase()
 
-  if (level === 'error' || payload.includes('error') || payload.includes('fail')) {
+  if (level === 'error') {
     return 'error'
   }
   if (payload.includes('tool')) {
@@ -243,6 +244,7 @@ export default function AgentRunPage() {
   const queryClient = useQueryClient()
 
   const [commandInput, setCommandInput] = useState('')
+  const [selectedAgentMode, setSelectedAgentMode] = useState('general')
   const [queuedCommands, setQueuedCommands] = useState<QueuedCommand[]>([])
   const [isDispatchingQueuedCommand, setIsDispatchingQueuedCommand] = useState(false)
   const [isAwaitingExecutionRefresh, setIsAwaitingExecutionRefresh] = useState(false)
@@ -305,11 +307,11 @@ export default function AgentRunPage() {
   })
 
   const runAgentMutation = useMutation({
-    mutationFn: async (prompt: string) => {
+    mutationFn: async ({ prompt, agentMode }: { prompt: string; agentMode: string }) => {
       if (!agentId) {
         throw new Error('Missing agent id')
       }
-      return (await agentsApi.run(agentId, { task_prompt: prompt || undefined })).data
+      return (await agentsApi.run(agentId, { task_prompt: prompt || undefined, opencode_agent: agentMode })).data
     },
   })
 
@@ -459,9 +461,9 @@ export default function AgentRunPage() {
     isAwaitingExecutionRefresh
 
   const submitCommand = useCallback(
-    async (prompt: string): Promise<boolean> => {
+    async (prompt: string, agentMode: string): Promise<boolean> => {
       try {
-        await runAgentMutation.mutateAsync(prompt)
+        await runAgentMutation.mutateAsync({ prompt, agentMode })
         setErrorMessage(null)
         setSuccessMessage('Command submitted to the agent.')
         setIsAwaitingExecutionRefresh(true)
@@ -628,7 +630,7 @@ export default function AgentRunPage() {
     setIsDispatchingQueuedCommand(true)
 
     void (async () => {
-      const submitted = await submitCommand(nextCommand.prompt)
+      const submitted = await submitCommand(nextCommand.prompt, nextCommand.agentMode)
 
       setQueuedCommands((current) => current.slice(1))
       if (submitted) {
@@ -664,6 +666,7 @@ export default function AgentRunPage() {
       const queuedCommand: QueuedCommand = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         prompt,
+        agentMode: selectedAgentMode,
         queuedAt: new Date().toISOString(),
       }
       setQueuedCommands((current) => [...current, queuedCommand])
@@ -672,7 +675,7 @@ export default function AgentRunPage() {
       return
     }
 
-    void submitCommand(prompt)
+    void submitCommand(prompt, selectedAgentMode)
   }
 
   const removeQueuedCommand = (commandId: string) => {
@@ -1052,7 +1055,7 @@ export default function AgentRunPage() {
                     className="flex items-center justify-between gap-2 bg-white/5 border border-interface-border rounded px-2 py-1"
                   >
                     <div className="min-w-0">
-                      <p className="text-xs font-mono text-white truncate">{command.prompt}</p>
+                      <p className="text-xs font-mono text-white truncate">[{command.agentMode}] {command.prompt}</p>
                       <p className="text-[10px] font-mono text-accent-tan/80">
                         queued {formatTime(command.queuedAt)}
                       </p>
@@ -1072,6 +1075,25 @@ export default function AgentRunPage() {
             )}
 
             <form onSubmit={handleSubmitCommand} className="mt-3 border-t border-interface-border/70 pt-3 space-y-2">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-mono text-accent-tan/80 uppercase tracking-widest">
+                  Command Input
+                </span>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="agentMode" className="text-[11px] font-mono text-accent-tan/80 uppercase">Mode:</label>
+                  <select
+                    id="agentMode"
+                    value={selectedAgentMode}
+                    onChange={(e) => setSelectedAgentMode(e.target.value)}
+                    className="bg-black border border-interface-border text-xs rounded px-2 py-1 font-mono text-white outline-none focus:border-primary/50"
+                  >
+                    <option value="general">General</option>
+                    <option value="explore">Explore</option>
+                    <option value="build">Build</option>
+                    <option value="plan">Plan</option>
+                  </select>
+                </div>
+              </div>
               <textarea
                 value={commandInput}
                 onChange={(event) => setCommandInput(event.target.value)}

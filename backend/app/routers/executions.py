@@ -235,7 +235,7 @@ async def stream_execution(
                         "message": log.message,
                         "data": log.data,
                     }
-                    yield f"data: {json.dumps(event_data)}\\n\\n"
+                    yield f"data: {json.dumps(event_data)}\n\n"
                     seen_log_ids.add(log_id)
 
             if current_execution.status in ["completed", "failed", "cancelled"]:
@@ -245,7 +245,7 @@ async def stream_execution(
                     "result": current_execution.result,
                     "error": current_execution.error_message,
                 }
-                yield f"data: {json.dumps(event_data)}\\n\\n"
+                yield f"data: {json.dumps(event_data)}\n\n"
                 break
 
             await asyncio.sleep(1)
