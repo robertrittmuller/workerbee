@@ -1,111 +1,121 @@
 # WorkerBee
 
-WorkerBee is an AI agent management portal for creating, running, and governing agents that execute real-world work tasks. Agents are created from markdown template bundles and can be provisioned with attached file resources.
+WorkerBee is a local AI agent management portal for creating agents from markdown templates, attaching resource files, running those agents through OpenCode, and reviewing live execution activity and generated outputs.
 
-## Features
+## Current Features
 
-- **Agent Management Portal**: Create, run, and delete agents from a single management UI
-- **Markdown Agent Templates**: Build agents from reusable `.md` template bundles
-- **Multi-format Input Support**: Upload PDFs, Word documents, Excel spreadsheets, PowerPoint presentations, CSV files, and images
-- **Resource Attachments**: Attach uploaded resources directly to each agent
-- **AI Agent Integration**: Powered by LangGraph and liteLLM for multi-provider LLM access
-- **Sandboxed Code Execution**: Secure Python code execution in isolated Docker containers
-- **Multiple Output Formats**: Generate Word documents, Excel files, PDFs, CSV, and more
-- **Real-time Execution Monitoring**: Watch agents work with live log streaming
+- Account registration, login, JWT refresh, and authenticated API access
+- Agent creation from built-in markdown templates or custom configuration
+- Built-in templates for document summarization, HTML dashboard generation, CSV extraction, and blank agents
+- Resource file upload and resource group management
+- Agent resource attachment and per-run resource overrides
+- Dedicated agent run page with live Server-Sent Events execution logs
+- OpenCode-backed execution sessions using a shared workspace volume
+- Recent output/artifact listing and download endpoints
+- Workflow, task, user, file, output, and execution API routers
 
 ## Architecture
 
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ Frontend                                                     │
+│ React 18 + TypeScript + Vite + TailwindCSS + TanStack Query  │
+│ Routes: landing, login, register, dashboard, agent run page  │
+└───────────────────────────────┬──────────────────────────────┘
+                                │ /api/v1
+┌───────────────────────────────▼──────────────────────────────┐
+│ Backend                                                       │
+│ FastAPI + SQLAlchemy async + PostgreSQL + Redis + MinIO       │
+│ Auth, agents, files, resource groups, executions, outputs     │
+└───────────────┬───────────────────────────────────┬──────────┘
+                │                                   │
+                │ OpenCode HTTP API                 │ shared volumes
+┌───────────────▼──────────────┐       ┌────────────▼───────────┐
+│ OpenCode server               │       │ Storage and state       │
+│ opencode serve on port 4096   │       │ PostgreSQL, Redis, MinIO│
+│ workspace: /workspace         │       │ uploads and artifacts   │
+└───────────────────────────────┘       └────────────────────────┘
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Frontend (React)                          │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
-│  │  Dashboard  │  │   Agents    │  │     Settings/Profile    │  │
-│  │             │  │  Management │  │                         │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────────┘  │
-│                           │                                      │
-│                 React + TanStack Query                          │
-└─────────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Backend (FastAPI)                             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
-│  │  Auth API   │  │  Workflow   │  │    Execution Engine     │  │
-│  │             │  │  API        │  │    (LangGraph)          │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────────┘  │
-│                           │                                      │
-│                    liteLLM + SQLAlchemy                         │
-└─────────────────────────────────────────────────────────────────┘
-                            │
-          ┌─────────────────┼─────────────────┐
-          ▼                 ▼                 ▼
-    ┌───────────┐    ┌───────────┐    ┌───────────┐
-    │ PostgreSQL│    │   MinIO   │    │   Redis   │
-    │ (Database)│    │ (Storage) │    │  (Cache)  │
-    └───────────┘    └───────────┘    └───────────┘
-```
+
+The backend creates an OpenCode session for each agent execution, prepares `/workspace/executions/{execution_id}`, copies attached input files into that workspace when available, sends the run prompt to OpenCode, streams execution logs from PostgreSQL, and records execution results and artifacts.
 
 ## Tech Stack
 
 ### Frontend
-- **React 18** with TypeScript
-- **Vite** for fast development
-- **TailwindCSS** for styling
-- **TanStack Query** for data fetching
+
+- React 18 with TypeScript
+- Vite development server with `/api` proxying
+- TailwindCSS
+- TanStack Query
+- Axios API client with access-token refresh handling
+- React Router
+- Lucide icons, Radix UI packages, React Markdown, and Mermaid
 
 ### Backend
-- **FastAPI** with Python 3.11
-- **SQLAlchemy** async with PostgreSQL
-- **LangGraph** for agent orchestration
-- **liteLLM** for multi-provider LLM access
-- **MinIO** for object storage
-- **Redis** for caching and task queues
 
-### Infrastructure
-- **Docker Compose** for local development
-- **Kubernetes/Helm** for production deployment
+- FastAPI on Python 3.11
+- SQLAlchemy async with PostgreSQL
+- Pydantic v2 settings and schemas
+- JWT authentication with `python-jose`
+- MinIO-compatible object storage
+- Redis dependency configured for cache/task infrastructure
+- OpenCode HTTP client for agent execution
+- liteLLM, LangChain, and LangGraph dependencies are still present, but current agent execution is routed through OpenCode
 
-### Sandbox Runtime Service
-- The backend now talks to a sandbox **HTTP service** (`SANDBOX_API_BASE_URL`) instead of `docker exec`.
-- This lets sandbox pods run behind a Kubernetes `Service` with multiple replicas for horizontal scaling.
-- Each execute call is self-contained (input files + current output state are sent in the request), so calls can be load-balanced across replicas.
+### Local Infrastructure
+
+- Docker Compose for local development
+- PostgreSQL 15
+- Redis 7
+- MinIO
+- Backend API container
+- Frontend Vite container
+- OpenCode server container
 
 ## Getting Started
 
 ### Prerequisites
 
 - Docker and Docker Compose
-- Node.js 20+ (for local frontend development)
-- Python 3.11+ (for local backend development)
+- Node.js 20+ for running the frontend outside Docker
+- Python 3.11+ for running the backend outside Docker
 
-### Quick Start with Docker
+### Quick Start With Docker
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-org/workerbee.git
-   cd workerbee
-   ```
+1. Create the environment file:
 
-2. Create environment file:
    ```bash
    cp .env.example .env
-   # Edit .env and add your API keys
    ```
 
-3. Start the services:
+2. Set at least one model provider key in `.env`. The Compose OpenCode service defaults OpenAI and Anthropic compatible base URLs to OpenRouter:
+
+   ```env
+   OPENROUTER_API_KEY=...
+   OPENAI_API_KEY=...
+   ANTHROPIC_API_KEY=...
+   ```
+
+   Use the variables that match the provider you intend OpenCode to call.
+
+3. Start the stack:
+
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
-4. Access the application:
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:8000
-   - API Documentation: http://localhost:8000/docs
-   - MinIO Console: http://localhost:9001
+4. Open the services:
 
-### Local Development
+   - Frontend: <http://localhost:5173>
+   - Backend health check: <http://localhost:8000/health>
+   - API docs: <http://localhost:8000/api/v1/docs>
+   - API OpenAPI JSON: <http://localhost:8000/api/v1/openapi.json>
+   - MinIO console: <http://localhost:9001>
+   - OpenCode server: <http://localhost:4096>
 
-#### Frontend
+The frontend container is configured with `VITE_API_URL=http://backend:8000`; the browser client normalizes that internal Docker hostname to same-origin `/api/v1`, and Vite proxies `/api` to the backend.
+
+### Local Frontend Development
 
 ```bash
 cd frontend
@@ -113,96 +123,167 @@ npm install
 npm run dev
 ```
 
-#### Backend
+By default, Vite serves on `0.0.0.0:5173` and proxies `/api` to `http://localhost:8000` unless `VITE_API_URL` is set.
+
+### Local Backend Development
 
 ```bash
 cd backend
-pip install poetry
-poetry install
-poetry run uvicorn app.main:app --reload
+pip install -e ".[dev]"
+uvicorn app.main:app --reload
 ```
+
+For local backend execution outside Docker, provide PostgreSQL, Redis, MinIO, and OpenCode settings that point at reachable services.
 
 ## Project Structure
 
-```
+```text
 workerbee/
-├── frontend/                 # React frontend application
-│   ├── src/
-│   │   ├── components/       # Reusable UI components
-│   │   ├── pages/            # Page components
-│   │   ├── lib/              # API client and utilities
-│   │   └── hooks/            # Custom React hooks
-│   ├── public/
-│   └── package.json
-│
-├── backend/                  # FastAPI backend application
+├── backend/
 │   ├── app/
-│   │   ├── routers/          # API route handlers
-│   │   ├── models.py         # SQLAlchemy models
-│   │   ├── schemas.py        # Pydantic schemas
-│   │   ├── auth.py           # Authentication utilities
-│   │   ├── database.py       # Database configuration
-│   │   ├── config.py         # Application settings
-│   │   └── agent/            # LangGraph agent implementation
+│   │   ├── agent/              # OpenCode-backed execution orchestration
+│   │   ├── routers/            # FastAPI route modules
+│   │   ├── auth.py             # Authentication helpers
+│   │   ├── config.py           # Environment-driven settings
+│   │   ├── database.py         # Async SQLAlchemy setup
+│   │   ├── main.py             # FastAPI application
+│   │   ├── models.py           # SQLAlchemy models
+│   │   ├── opencode_client.py  # OpenCode HTTP client
+│   │   └── schemas.py          # Pydantic schemas
+│   ├── Dockerfile
 │   └── pyproject.toml
-│
-├── sandbox/                  # Sandbox container for code execution
-│   └── Dockerfile
-│
-├── docker-compose.yml        # Local development setup
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── lib/api.ts          # Axios client and typed API helpers
+│   │   ├── pages/
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── Dockerfile.dev
+│   ├── package.json
+│   └── vite.config.ts
+├── opencode/
+│   ├── Dockerfile              # Runs opencode serve on port 4096
+│   ├── opencode.json           # OpenCode server configuration
+│   └── package.json
+├── docker-compose.yml
+├── .env.example
 └── README.md
 ```
 
-## API Endpoints
+## API Overview
+
+All application API routes are under `/api/v1`.
 
 ### Authentication
-- `POST /api/v1/auth/login` - Login
-- `POST /api/v1/auth/register` - Register new user
-- `POST /api/v1/auth/refresh` - Refresh access token
-- `GET /api/v1/auth/me` - Get current user
+
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/refresh`
+- `GET /api/v1/auth/me`
 
 ### Agents
-- `GET /api/v1/agents` - List agents
-- `GET /api/v1/agents/templates` - List markdown-based templates
-- `POST /api/v1/agents/from-template` - Create agent from template
-- `PUT /api/v1/agents/{id}/resources` - Replace attached resources
-- `POST /api/v1/agents/{id}/run` - Run/queue an agent execution
-- `DELETE /api/v1/agents/{id}` - Delete agent
 
-### Tasks
-- `GET /api/v1/tasks` - List tasks
-- `POST /api/v1/tasks` - Create task
-- `GET /api/v1/tasks/templates` - List task templates
+- `GET /api/v1/agents/types`
+- `GET /api/v1/agents/templates`
+- `GET /api/v1/agents`
+- `POST /api/v1/agents`
+- `POST /api/v1/agents/from-template`
+- `GET /api/v1/agents/{agent_id}`
+- `PUT /api/v1/agents/{agent_id}`
+- `DELETE /api/v1/agents/{agent_id}`
+- `POST /api/v1/agents/{agent_id}/run`
+- `GET /api/v1/agents/{agent_id}/resources`
+- `PUT /api/v1/agents/{agent_id}/resources`
+- `DELETE /api/v1/agents/{agent_id}/resources/{file_id}`
 
-### Files
-- `GET /api/v1/files` - List files
-- `POST /api/v1/files/upload` - Upload file
-- `GET /api/v1/files/{id}/download` - Download file
+### Files and Resource Groups
 
-### Executions
-- `GET /api/v1/executions` - List executions
-- `POST /api/v1/executions` - Create execution (workflow or agent)
-- `GET /api/v1/executions/{id}/stream` - Stream execution logs (SSE)
+- `GET /api/v1/files`
+- `POST /api/v1/files/upload`
+- `GET /api/v1/files/{file_id}`
+- `GET /api/v1/files/{file_id}/download`
+- `DELETE /api/v1/files/{file_id}`
+- `GET /api/v1/files/resource-groups`
+- `POST /api/v1/files/resource-groups`
+- `GET /api/v1/files/resource-groups/{resource_group_id}/files`
+- `DELETE /api/v1/files/resource-groups/{resource_group_id}`
+- `PUT /api/v1/files/{file_id}/resource-group`
+
+### Executions and Outputs
+
+- `GET /api/v1/executions`
+- `POST /api/v1/executions`
+- `GET /api/v1/executions/{execution_id}`
+- `PUT /api/v1/executions/{execution_id}`
+- `POST /api/v1/executions/{execution_id}/cancel`
+- `GET /api/v1/executions/{execution_id}/stream`
+- `GET /api/v1/executions/{execution_id}/logs`
+- `GET /api/v1/outputs`
+- `POST /api/v1/outputs`
+- `GET /api/v1/outputs/types`
+- `GET /api/v1/outputs/recent-files`
+- `GET /api/v1/outputs/recent-files/{artifact_id}/download`
+- `GET /api/v1/outputs/{output_id}`
+- `PUT /api/v1/outputs/{output_id}`
+- `DELETE /api/v1/outputs/{output_id}`
+
+### Workflows, Tasks, and Users
+
+- `GET /api/v1/workflows`
+- `POST /api/v1/workflows`
+- `GET /api/v1/workflows/{workflow_id}`
+- `PUT /api/v1/workflows/{workflow_id}`
+- `DELETE /api/v1/workflows/{workflow_id}`
+- `POST /api/v1/workflows/{workflow_id}/nodes`
+- `POST /api/v1/workflows/{workflow_id}/edges`
+- `GET /api/v1/tasks`
+- `POST /api/v1/tasks`
+- `GET /api/v1/tasks/templates`
+- `GET /api/v1/tasks/{task_id}`
+- `PUT /api/v1/tasks/{task_id}`
+- `DELETE /api/v1/tasks/{task_id}`
+- `GET /api/v1/users`
+- `GET /api/v1/users/{user_id}`
 
 ## Configuration
 
-### Environment Variables
+Important active settings:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection URL | Required |
-| `SECRET_KEY` | JWT secret key | Required |
-| `LITELLM_BASE_URL` | liteLLM proxy base URL (OpenAI-compatible endpoint) | Optional |
-| `LITELLM_API_KEY` | API key for liteLLM proxy authentication | Optional |
-| `LITELLM_MASTER_KEY` | Alternate liteLLM proxy key variable (backward compatibility) | Optional |
-| `LLM_AVAILABLE_MODELS` | Comma-separated allowlist of model ids agents can use | Optional |
-| `LLM_DEFAULT_MODEL` | Default model id used when no model is specified | Optional |
-| `OPENAI_API_KEY` | OpenAI API key | Optional |
-| `ANTHROPIC_API_KEY` | Anthropic API key | Optional |
-| `MINIO_ENDPOINT` | MinIO endpoint | `minio:9000` |
+| Variable | Description | Code default / Docker Compose value |
+| --- | --- | --- |
+| `DATABASE_URL` | PostgreSQL async connection URL | Localhost code default / `postgres:5432` in Compose |
+| `REDIS_URL` | Redis connection URL | Localhost code default / `redis:6379` in Compose |
+| `SECRET_KEY` | JWT signing key | Development placeholder / Compose placeholder |
+| `MINIO_ENDPOINT` | MinIO API endpoint | `localhost:9000` / `minio:9000` |
 | `MINIO_ACCESS_KEY` | MinIO access key | `minioadmin` |
-| `MINIO_SECRET_KEY` | MinIO secret key | `minioadmin_secret` |
+| `MINIO_SECRET_KEY` | MinIO secret key | `minioadmin` / `minioadmin_secret` |
+| `MINIO_BUCKET` | MinIO bucket name | `workerbee` |
+| `MINIO_SECURE` | Use HTTPS for MinIO | `false` |
+| `OPENCODE_API_BASE_URL` | Backend-to-OpenCode URL | `http://opencode:4096` |
+| `OPENCODE_PASSWORD` | Basic auth password for OpenCode server | `workerbee_secret` |
+| `OPENCODE_WORKSPACE_ROOT` | Shared execution workspace root | `/workspace` |
+| `LLM_AVAILABLE_MODELS` | Comma-separated model IDs shown/allowed in UI settings | Built-in model list / `.env` override supported |
+| `LLM_DEFAULT_MODEL` | Default model ID for UI settings | `anthropic/claude-3-5-sonnet-20241022` / `.env` override supported |
+| `MAX_FILE_SIZE` | Max upload size in bytes | `104857600` |
+
+`docker-compose.yml` still passes several `SANDBOX_*` variables into the backend for compatibility with older configuration, but the current backend settings and execution path use `OPENCODE_*` settings and `backend/app/opencode_client.py`.
+
+OpenCode provider configuration is controlled by the `opencode` service environment and `opencode/opencode.json`. The Compose file exposes:
+
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL`
+- `ANTHROPIC_API_KEY`
+- `ANTHROPIC_BASE_URL`
+- `OPENCODE_SERVER_PASSWORD`
+
+## Notes
+
+- Generated execution workspaces are created under the shared `opencode_workspace` Docker volume at `/workspace/executions/{execution_id}`.
+- Uploaded files are stored under the backend upload path and associated with resource groups.
+- API documentation is served at `/api/v1/docs`, not `/docs`.
+- The repository currently contains development helper scripts such as `check_db.py` and output inspection scripts; they are not required for normal startup.
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License - see `LICENSE` if present.
