@@ -16,6 +16,8 @@ eggs/
 .eggs/
 lib/
 lib64/
+!frontend/src/lib/
+!frontend/src/lib/**/*.ts
 parts/
 sdist/
 var/
@@ -208,3 +210,18 @@ __marimo__/
 
 # local files that don't need to be tracked by git
 .DS_Store
+
+# Frontend dependencies and build artifacts
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+desktop/node_modules/
+desktop/release/
+desktop/runtime/*
+!desktop/runtime/.gitkeep
+!desktop/build/
+desktop/build/*
+!desktop/build/icon-source.png
+!desktop/build/icon.png
+!desktop/build/icon.icns
+!desktop/build/icon.ico

@@ -37,12 +37,21 @@ class OpenCodeClient:
         resp.raise_for_status()
         return True
 
-    async def send_prompt(self, session_id: str, prompt: str, agent_name: str = "build", model: str | None = None) -> dict[str, Any]:
+    async def send_prompt(
+        self,
+        session_id: str,
+        prompt: str,
+        agent_name: str = "build",
+        model: str | None = None,
+        tools: dict[str, bool] | None = None,
+    ) -> dict[str, Any]:
         """Send a synchronous prompt to the session, wait for result."""
         payload = {
             "agent": agent_name,
             "parts": [{"type": "text", "text": prompt}]
         }
+        if tools is not None:
+            payload["tools"] = tools
         # model parameter removed because OpenCode expects an object if provided, which breaks the API.
             
         resp = await self.client.post(f"/session/{session_id}/message", json=payload, timeout=settings.execution_timeout)

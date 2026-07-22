@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from uuid import UUID
 
 import bcrypt
 from jose import JWTError, jwt
@@ -71,11 +72,17 @@ def decode_token(token: str) -> Optional[dict]:
         return None
 
 
-def verify_token(token: str, token_type: str = "access") -> Optional[str]:
+def verify_token(token: str, token_type: str = "access") -> Optional[UUID]:
     """Verify a token and return the subject (user ID)."""
     payload = decode_token(token)
     if payload is None:
         return None
     if payload.get("type") != token_type:
         return None
-    return payload.get("sub")
+    subject = payload.get("sub")
+    if not isinstance(subject, str):
+        return None
+    try:
+        return UUID(subject)
+    except ValueError:
+        return None

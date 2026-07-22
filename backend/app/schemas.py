@@ -2,9 +2,10 @@
 
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Literal, Optional
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 # User schemas
@@ -133,6 +134,45 @@ class FileResponse(FileBase):
         from_attributes = True
 
 
+class FilePreviewTable(BaseModel):
+    name: str
+    rows: list[list[str]] = Field(default_factory=list)
+    truncated: bool = False
+
+
+class FilePreviewResponse(BaseModel):
+    kind: Literal["text", "table", "image", "unavailable"]
+    detail: str
+    text: Optional[str] = None
+    tables: list[FilePreviewTable] = Field(default_factory=list)
+    page_count: Optional[int] = None
+    truncated: bool = False
+
+
+class FileBatchDownloadRequest(BaseModel):
+    file_ids: list[uuid.UUID] = Field(min_length=1, max_length=20)
+
+
+class SourceSetCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    file_ids: list[uuid.UUID] = Field(min_length=1, max_length=20)
+
+
+class SourceSetUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    file_ids: Optional[list[uuid.UUID]] = Field(default=None, min_length=1, max_length=20)
+
+
+class SourceSetResponse(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    name: str
+    file_ids: list[uuid.UUID] = Field(default_factory=list)
+    file_count: int
+    created_at: datetime
+    updated_at: datetime
+
+
 class ResourceGroupBase(BaseModel):
     name: str
 
@@ -141,8 +181,22 @@ class ResourceGroupCreate(ResourceGroupBase):
     pass
 
 
+class ResourceGroupUpdate(ResourceGroupBase):
+    pass
+
+
 class ResourceGroupAssign(BaseModel):
     resource_group_id: Optional[uuid.UUID] = None
+
+
+class ResourceGroupBatchAssign(BaseModel):
+    file_ids: list[uuid.UUID] = Field(min_length=1, max_length=20)
+    resource_group_id: Optional[uuid.UUID] = None
+
+
+class ResourceGroupBatchAssignResponse(BaseModel):
+    resource_group_id: uuid.UUID
+    moved_count: int
 
 
 class ResourceGroupResponse(ResourceGroupBase):
@@ -191,6 +245,11 @@ class AgentTemplateResponse(BaseModel):
     markdown_files: list[str]
 
 
+class WorkPackSelection(BaseModel):
+    id: str = Field(min_length=1, max_length=100)
+    answers: dict[str, Any]
+
+
 class AgentCreateFromTemplate(BaseModel):
     template_id: str
     name: str
@@ -198,6 +257,7 @@ class AgentCreateFromTemplate(BaseModel):
     agent_type_id: Optional[uuid.UUID] = None
     llm_settings: Optional[dict[str, Any]] = None
     resource_ids: list[uuid.UUID] = Field(default_factory=list)
+    work_pack: Optional[WorkPackSelection] = None
 
 
 class AgentResourceUpdate(BaseModel):
@@ -208,6 +268,11 @@ class AgentRunRequest(BaseModel):
     task_id: Optional[uuid.UUID] = None
     task_prompt: Optional[str] = None
     resource_ids: Optional[list[uuid.UUID]] = None
+    thread_id: Optional[uuid.UUID] = None
+    thread_title: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    revision_note: Optional[str] = Field(default=None, min_length=1, max_length=2000)
+    base_execution_id: Optional[uuid.UUID] = None
+    work_pack_answers: Optional[dict[str, Any]] = None
     opencode_agent: str = Field(default="general", description="The OpenCode agent mode to use: build, explore, general, plan")
 
 
@@ -329,6 +394,58 @@ class ExecutionLogResponse(BaseModel):
         from_attributes = True
 
 
+class ExternalActionEventRequest(BaseModel):
+    """A user-approved handoff from a generated artifact to another app."""
+
+    action_type: Literal["email_draft_handoff", "calendar_draft_handoff"]
+    stage: Literal["approved", "opened", "downloaded"]
+    artifact_id: uuid.UUID
+    artifact_filename: str = Field(min_length=1, max_length=255)
+    destination_label: str = Field(min_length=1, max_length=100)
+    recipients: list[EmailStr] = Field(default_factory=list, max_length=20)
+    subject: str = Field(min_length=1, max_length=200)
+    scheduled_start: Optional[str] = Field(
+        default=None,
+        pattern=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$",
+    )
+    timezone: Optional[str] = Field(
+        default=None,
+        max_length=100,
+        pattern=r"^(?:UTC|[A-Za-z_]+(?:/[A-Za-z0-9_+\-]+)+)$",
+    )
+    duration_minutes: Optional[int] = Field(default=None, ge=15, le=480)
+    content_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    user_confirmed: Literal[True]
+
+    @model_validator(mode="after")
+    def validate_action_contract(self) -> "ExternalActionEventRequest":
+        if self.action_type == "email_draft_handoff":
+            if not self.recipients:
+                raise ValueError("Email handoffs require at least one recipient")
+            if self.stage == "downloaded":
+                raise ValueError("Email handoffs cannot use the downloaded stage")
+            if any(
+                value is not None
+                for value in (self.scheduled_start, self.timezone, self.duration_minutes)
+            ):
+                raise ValueError("Email handoffs cannot include calendar scheduling fields")
+            return self
+
+        if self.scheduled_start is None or self.timezone is None or self.duration_minutes is None:
+            raise ValueError("Calendar handoffs require a start, timezone, and duration")
+        try:
+            parsed_start = datetime.fromisoformat(self.scheduled_start)
+        except ValueError as exc:
+            raise ValueError("Calendar handoffs require a valid local start") from exc
+        if parsed_start.strftime("%Y-%m-%dT%H:%M") != self.scheduled_start:
+            raise ValueError("Calendar handoffs require a valid local start")
+        try:
+            ZoneInfo(self.timezone)
+        except ZoneInfoNotFoundError as exc:
+            raise ValueError("Calendar handoffs require a recognized timezone") from exc
+        return self
+
+
 # Artifact schemas
 class ArtifactResponse(BaseModel):
     id: uuid.UUID
@@ -357,6 +474,35 @@ class RecentOutputFileResponse(BaseModel):
     agent_name: Optional[str] = None
     output_name: Optional[str] = None
     output_type: Optional[str] = None
+    thread_id: Optional[uuid.UUID] = None
+    attempt_number: Optional[int] = None
+
+
+class TaskThreadAttemptResponse(BaseModel):
+    id: uuid.UUID
+    attempt_number: int
+    execution: ExecutionResponse
+    artifacts: list[ArtifactResponse]
+
+
+class TaskThreadSummaryResponse(BaseModel):
+    id: uuid.UUID
+    title: str
+    original_prompt: str
+    agent_id: Optional[uuid.UUID]
+    status: str
+    work_pack: Optional[dict[str, Any]] = None
+    resource_ids: list[uuid.UUID] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
+    latest_execution_id: Optional[uuid.UUID] = None
+    latest_attempt_number: int = 0
+    attempt_count: int = 0
+    artifact_count: int = 0
+
+
+class TaskThreadDetailResponse(TaskThreadSummaryResponse):
+    attempts: list[TaskThreadAttemptResponse] = Field(default_factory=list)
 
 
 # API Key schemas

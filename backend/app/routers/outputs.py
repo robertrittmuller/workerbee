@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Agent, Artifact, Execution, Output, User
+from app.models import Agent, Artifact, Execution, Output, TaskThreadAttempt, User
 from app.routers.auth import get_current_active_user
 from app.schemas import (
     OutputCreate,
@@ -138,10 +138,16 @@ async def list_recent_output_files(
             Agent.name,
             Output.name,
             Output.output_type,
+            TaskThreadAttempt.thread_id,
+            TaskThreadAttempt.attempt_number,
         )
         .join(Execution, Artifact.execution_id == Execution.id)
         .join(Agent, Execution.agent_id == Agent.id)
         .outerjoin(Output, Artifact.output_id == Output.id)
+        .outerjoin(
+            TaskThreadAttempt,
+            TaskThreadAttempt.execution_id == Execution.id,
+        )
         .where(
             Agent.user_id == current_user.id,
             Execution.agent_id.is_not(None),
@@ -172,8 +178,18 @@ async def list_recent_output_files(
             agent_name=agent_name,
             output_name=output_name,
             output_type=output_type,
+            thread_id=thread_id,
+            attempt_number=attempt_number,
         )
-        for artifact, agent_id, agent_name, output_name, output_type in rows
+        for (
+            artifact,
+            agent_id,
+            agent_name,
+            output_name,
+            output_type,
+            thread_id,
+            attempt_number,
+        ) in rows
     ]
 
 

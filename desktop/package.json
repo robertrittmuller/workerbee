@@ -1,0 +1,94 @@
+{
+  "name": "workerbee-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WorkerBee turns business requests and working files into useful, reviewable deliverables.",
+  "author": "WorkerBee",
+  "main": "src/main.cjs",
+  "scripts": {
+    "test": "node --test test/*.test.cjs",
+    "dev": "concurrently -k -s first \"npm:dev:web\" \"npm:dev:app\"",
+    "dev:web": "npm --prefix ../frontend run dev -- --host 127.0.0.1",
+    "dev:app": "wait-on http://127.0.0.1:5173 && cross-env WORKERBEE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .",
+    "build:web": "cross-env VITE_DESKTOP=true npm --prefix ../frontend run build",
+    "build:runtime": "node scripts/build-runtime.mjs",
+    "pack": "npm run build:web && npm run build:runtime && electron-builder --dir",
+    "dist:mac": "npm run build:web && node scripts/build-runtime.mjs --target=darwin && electron-builder --mac zip dmg",
+    "dist:windows": "npm run build:web && node scripts/build-runtime.mjs --target=win32 && electron-builder --win nsis portable",
+    "dist:linux": "npm run build:web && node scripts/build-runtime.mjs --target=linux && electron-builder --linux AppImage",
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "cross-env": "^7.0.3",
+    "electron": "^37.2.3",
+    "electron-builder": "^26.0.12",
+    "opencode-ai": "1.18.4",
+    "wait-on": "^8.0.4"
+  },
+  "build": {
+    "appId": "com.workerbee.desktop",
+    "productName": "WorkerBee",
+    "copyright": "Copyright © 2026 WorkerBee",
+    "asar": true,
+    "beforePack": "scripts/verify-runtime.cjs",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "scripts/runtime-compatibility.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/dist",
+        "to": "ui"
+      },
+      {
+        "from": "runtime",
+        "to": "runtime",
+        "filter": [
+          "workerbee-backend*",
+          "opencode*"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "target": [
+        "zip",
+        "dmg"
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "packElevateHelper": false
+    },
+    "linux": {
+      "category": "Office",
+      "icon": "build/icon.png",
+      "target": [
+        "AppImage"
+      ]
+    }
+  },
+  "allowScripts": {
+    "electron@37.10.3": true,
+    "electron-winstaller@5.4.0": true,
+    "opencode-ai@1.18.4": true
+  }
+}

@@ -3,8 +3,9 @@
 import asyncio
 import json
 import uuid
+from collections.abc import AsyncGenerator
 from datetime import datetime
-from typing import Annotated, AsyncGenerator
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -13,9 +14,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import async_session_maker, get_db
-from app.models import Agent, Execution, ExecutionLog, User, Workflow
+from app.models import (
+    Agent,
+    Artifact,
+    Execution,
+    ExecutionLog,
+    TaskThread,
+    TaskThreadAttempt,
+    User,
+    Workflow,
+)
 from app.routers.auth import get_current_active_user
-from app.schemas import ExecutionCreate, ExecutionResponse, ExecutionUpdate
+from app.schemas import (
+    ExecutionCreate,
+    ExecutionResponse,
+    ExecutionUpdate,
+    ExternalActionEventRequest,
+)
 
 router = APIRouter()
 
@@ -71,7 +86,9 @@ async def list_executions(
     if agent_id:
         query = query.where(Execution.agent_id == agent_id)
 
-    result = await db.execute(query.offset(skip).limit(limit))
+    result = await db.execute(
+        query.order_by(Execution.started_at.desc(), Execution.id.desc()).offset(skip).limit(limit)
+    )
     return list(result.scalars().all())
 
 
@@ -158,6 +175,65 @@ async def get_execution(
     return await _get_execution_or_404(db, current_user.id, execution_id)
 
 
+@router.post("/{execution_id}/external-action-events", status_code=status.HTTP_201_CREATED)
+async def record_external_action_event(
+    execution_id: uuid.UUID,
+    event: ExternalActionEventRequest,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, str]:
+    """Audit an explicit external-app handoff without retaining message contents."""
+    await _get_execution_or_404(db, current_user.id, execution_id)
+    artifact_result = await db.execute(
+        select(Artifact).where(
+            Artifact.id == event.artifact_id,
+            Artifact.execution_id == execution_id,
+        )
+    )
+    artifact = artifact_result.scalar_one_or_none()
+    if artifact is None or artifact.filename != event.artifact_filename:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Artifact not found for this execution",
+        )
+
+    action_label = (
+        "Email draft handoff"
+        if event.action_type == "email_draft_handoff"
+        else "Calendar draft handoff"
+    )
+    audit_data = {
+        "event_type": "external_action",
+        "action_type": event.action_type,
+        "stage": event.stage,
+        "artifact_id": str(artifact.id),
+        "artifact_filename": artifact.filename,
+        "destination_label": event.destination_label,
+        "recipients": [str(recipient) for recipient in event.recipients],
+        "subject": event.subject,
+        "content_sha256": event.content_sha256,
+        "user_confirmed": True,
+    }
+    if event.action_type == "calendar_draft_handoff":
+        audit_data.update(
+            {
+                "scheduled_start": event.scheduled_start,
+                "timezone": event.timezone,
+                "duration_minutes": event.duration_minutes,
+            }
+        )
+
+    log = ExecutionLog(
+        execution_id=execution_id,
+        level="info",
+        message=f"{action_label} {event.stage}",
+        data=audit_data,
+    )
+    db.add(log)
+    await db.flush()
+    return {"id": str(log.id), "status": event.stage}
+
+
 @router.put("/{execution_id}", response_model=ExecutionResponse)
 async def update_execution(
     execution_id: uuid.UUID,
@@ -194,6 +270,17 @@ async def cancel_execution(
 
     execution.status = "cancelled"
     execution.completed_at = datetime.utcnow()
+    attempt_result = await db.execute(
+        select(TaskThreadAttempt).where(
+            TaskThreadAttempt.execution_id == execution.id
+        )
+    )
+    thread_attempt = attempt_result.scalar_one_or_none()
+    if thread_attempt is not None:
+        thread = await db.get(TaskThread, thread_attempt.thread_id)
+        if thread is not None:
+            thread.status = "cancelled"
+            thread.updated_at = execution.completed_at
     await db.flush()
     await db.refresh(execution)
 
