@@ -1,10 +1,38 @@
 # WorkerBee
 
-WorkerBee 1.0 is an agentic work platform for business users. It turns a clear request
-and the user's own files into reviewable deliverables through a polished web workspace
-or a no-admin installable desktop app with direct local-file access. The product is
-designed around useful outcomes, visible sources, deterministic output contracts, and
-approval at consequential external-action boundaries.
+## Business work, made genuinely useful
+
+WorkerBee 1.0 turns the work already on your desk—files, meeting notes, spreadsheets,
+and open questions—into useful deliverables people can review, use, and share. Start
+with the outcome you need, not a prompt-engineering exercise.
+
+- **Move from request to result quickly.** Twelve guided workflows turn familiar jobs
+  such as KPI reporting, research synthesis, proposals, presentations, and meeting
+  follow-up into clear, reviewable outputs.
+- **Keep the evidence visible.** WorkerBee carries filenames, confidence, gaps, and
+  source context into the deliverable instead of presenting a polished but opaque answer.
+- **Stay in control at the consequential moment.** Email and calendar handoffs are
+  editable drafts that require review; WorkerBee never sends, publishes, invites, or
+  adds an event on your behalf.
+- **Use it where your work lives.** Run it in the browser, or install the desktop app
+  without administrator access for local files, native save dialogs, and a private
+  loopback-only workspace.
+
+## See WorkerBee 1.0
+
+Start with a plain-language request, add your working files, or choose a guided task
+that already knows what a strong deliverable looks like.
+
+![WorkerBee Home shows a plain-language task box and guided business workflows](docs/images/workerbee-home-1.0.jpg)
+
+Guided setup asks only for the business context that changes the result, then makes the
+required sources and review checks explicit before work begins.
+
+![WorkerBee guided meeting follow-up setup](docs/images/workerbee-guided-workflow-1.0.jpg)
+
+WorkerBee 1.0 is an agentic work platform for business users. It combines a polished
+web workspace with a no-admin installable desktop app, deterministic output contracts,
+and approval at consequential external-action boundaries.
 
 ## Current Features
 
