@@ -1,5 +1,9 @@
 # WorkerBee
 
+> **Experimental project.** WorkerBee is being developed as a testbed for long-running
+> agentic software development workflows. It is useful to explore today, but its APIs,
+> runtime behavior, and product direction may change as those workflows are tested.
+
 ## Business work, made genuinely useful
 
 WorkerBee 1.0 turns the work already on your desk—files, meeting notes, spreadsheets,
