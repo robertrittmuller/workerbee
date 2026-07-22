@@ -1,18 +1,28 @@
 # WorkerBee
 
-WorkerBee is a local AI agent management portal for creating agents from markdown templates, attaching resource files, running those agents through OpenCode, and reviewing live execution activity and generated outputs.
+WorkerBee 1.0 is an agentic work platform for business users. It turns a clear request
+and the user's own files into reviewable deliverables through a polished web workspace
+or a no-admin installable desktop app with direct local-file access. The product is
+designed around useful outcomes, visible sources, deterministic output contracts, and
+approval at consequential external-action boundaries.
 
 ## Current Features
 
-- Account registration, login, JWT refresh, and authenticated API access
-- Agent creation from built-in markdown templates or custom configuration
-- Built-in templates for document summarization, HTML dashboard generation, CSV extraction, and blank agents
-- Resource file upload and resource group management
-- Agent resource attachment and per-run resource overrides
-- Dedicated agent run page with live Server-Sent Events execution logs
-- OpenCode-backed execution sessions using a shared workspace volume
-- Recent output/artifact listing and download endpoints
-- Workflow, task, user, file, output, and execution API routers
+- Twelve guided business workflows across data and reporting, briefs and decisions,
+  research and analysis, presentations, proposals, project updates, and meetings
+- Grounded multi-file deliverables with deterministic Markdown, CSV, spreadsheet,
+  presentation, and HTML rendering where the workflow requires it
+- A searchable Home, immutable task and revision history, live activity, artifact
+  previews, and clear missing-input recovery
+- A source Library with collections, exact saved source sets, bounded ZIP export, and
+  precise handoff into new work
+- Approval-gated email and tentative calendar draft handoffs that never send, publish,
+  invite, or add an event automatically
+- Browser deployment backed by PostgreSQL, Redis, MinIO, and OpenCode
+- A macOS/Windows/Linux Electron app with a bundled loopback-only FastAPI/SQLite runtime,
+  native file dialogs, encrypted provider credentials, and no administrator requirement
+- A versioned desktop runtime contract that prevents a new UI from launching with a
+  stale or capability-incompatible local backend
 
 ## Architecture
 
@@ -20,7 +30,7 @@ WorkerBee is a local AI agent management portal for creating agents from markdow
 ┌──────────────────────────────────────────────────────────────┐
 │ Frontend                                                     │
 │ React 18 + TypeScript + Vite + TailwindCSS + TanStack Query  │
-│ Routes: landing, login, register, dashboard, agent run page  │
+│ Routes: Home, Work, Library, Activity, Assistants, Settings   │
 └───────────────────────────────┬──────────────────────────────┘
                                 │ /api/v1
 ┌───────────────────────────────▼──────────────────────────────┐
@@ -37,7 +47,12 @@ WorkerBee is a local AI agent management portal for creating agents from markdow
 └───────────────────────────────┘       └────────────────────────┘
 ```
 
-The backend creates an OpenCode session for each agent execution, prepares `/workspace/executions/{execution_id}`, copies attached input files into that workspace when available, sends the run prompt to OpenCode, streams execution logs from PostgreSQL, and records execution results and artifacts.
+The backend creates an OpenCode session for each execution, prepares an isolated
+workspace, copies the exact approved inputs, validates workflow-specific output
+contracts, and records logs and artifacts. In the desktop app the same API runs as a
+bundled loopback-only sidecar against a per-user SQLite workspace; source files and
+deliverables stay on the local machine unless the user explicitly approves model
+processing.
 
 ## Tech Stack
 
@@ -114,6 +129,26 @@ The backend creates an OpenCode session for each agent execution, prepares `/wor
    - OpenCode server: <http://localhost:4096>
 
 The frontend container is configured with `VITE_API_URL=http://backend:8000`; the browser client normalizes that internal Docker hostname to same-origin `/api/v1`, and Vite proxies `/api` to the backend.
+
+### Installable desktop app
+
+WorkerBee's desktop package does not need administrator access. It bundles the web UI,
+the local API, SQLite persistence, and the native OpenCode engine. On first launch the
+user selects included model access or enters a provider credential, which is stored with
+the operating system's encrypted storage. Native dialogs can attach local files and save
+finished deliverables back to an explicit user-selected location.
+
+Build a native package on the operating system it targets:
+
+```bash
+npm --prefix desktop run dist:mac
+npm --prefix desktop run dist:windows
+npm --prefix desktop run dist:linux
+```
+
+PyInstaller and OpenCode are host-native, so releases cannot be cross-compiled. The
+repeatable native matrix is in `.github/workflows/desktop-packages.yml`; the complete
+release gate is documented in `plans/desktop-release-checklist.md`.
 
 ### Local Frontend Development
 

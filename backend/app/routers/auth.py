@@ -1,9 +1,11 @@
 """Authentication router."""
 
 from datetime import timedelta
+import hmac
+import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +25,48 @@ from app.schemas import Token, UserCreate, UserLogin, UserResponse
 router = APIRouter()
 security = HTTPBearer()
 optional_security = HTTPBearer(auto_error=False)
+
+
+@router.post("/desktop-session", response_model=Token)
+async def desktop_session(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    desktop_session_secret: Annotated[
+        str | None,
+        Header(alias="X-WorkerBee-Desktop-Session"),
+    ] = None,
+) -> dict:
+    """Start a local session for the trusted desktop shell."""
+    expected_secret = settings.workerbee_desktop_session_secret
+    if not settings.workerbee_desktop_mode or not expected_secret:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    if not desktop_session_secret or not hmac.compare_digest(
+        desktop_session_secret,
+        expected_secret,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid desktop session",
+        )
+
+    email = "local@workerbee.desktop"
+    result = await db.execute(select(User).where(func.lower(User.email) == email))
+    user = result.scalar_one_or_none()
+    if user is None:
+        user = User(
+            email=email,
+            full_name="Local User",
+            password_hash=get_password_hash(secrets.token_urlsafe(32)),
+            is_active=True,
+        )
+        db.add(user)
+        await db.flush()
+        await db.refresh(user)
+
+    return {
+        "access_token": create_access_token(subject=str(user.id)),
+        "refresh_token": create_refresh_token(subject=str(user.id)),
+        "token_type": "bearer",
+    }
 
 
 async def get_current_user(

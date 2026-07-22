@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { MarkdownContent } from '@/components/ui/MarkdownContent'
 import { WorkerBeeBrand } from '@/components/WorkerBeeBrand'
@@ -13,6 +13,7 @@ import {
   executionsApi,
   outputsApi,
 } from '@/lib/api'
+import { deliverFile } from '@/lib/fileDelivery'
 
 type ActivityType = 'tool' | 'llm' | 'resource' | 'execution' | 'error' | 'system'
 type ActivitySource = 'status' | 'transcript'
@@ -240,10 +241,16 @@ function getActivityLabel(activity: AgentActivityLog, type: ActivityType): strin
 
 export default function AgentRunPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { agentId } = useParams<{ agentId: string }>()
   const queryClient = useQueryClient()
 
-  const [commandInput, setCommandInput] = useState('')
+  const starterPrompt =
+    typeof (location.state as { starterPrompt?: unknown } | null)?.starterPrompt === 'string'
+      ? (location.state as { starterPrompt: string }).starterPrompt
+      : ''
+
+  const [commandInput, setCommandInput] = useState(starterPrompt)
   const [selectedAgentMode, setSelectedAgentMode] = useState('general')
   const [queuedCommands, setQueuedCommands] = useState<QueuedCommand[]>([])
   const [isDispatchingQueuedCommand, setIsDispatchingQueuedCommand] = useState(false)
@@ -690,14 +697,10 @@ export default function AgentRunPage() {
     try {
       const response = await outputsApi.downloadRecentFile(output.id)
       const blob = response.data as Blob
-      const href = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
-      anchor.href = href
-      anchor.download = output.filename
-      document.body.appendChild(anchor)
-      anchor.click()
-      anchor.remove()
-      URL.revokeObjectURL(href)
+      const result = await deliverFile(blob, output.filename)
+      if (result.method !== 'cancelled') {
+        setSuccessMessage(result.method === 'saved' ? `Saved ${output.filename}.` : `Download started for ${output.filename}.`)
+      }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to download output file')
     } finally {
@@ -733,7 +736,7 @@ export default function AgentRunPage() {
     }
   }
 
-  const handleDownloadViewedOutput = () => {
+  const handleDownloadViewedOutput = async () => {
     if (!viewerOutputFile || !viewerOutputContent) {
       return
     }
@@ -741,14 +744,10 @@ export default function AgentRunPage() {
     const blob = new Blob([viewerOutputContent], {
       type: viewerOutputFile.content_type || 'text/plain;charset=utf-8',
     })
-    const href = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = href
-    anchor.download = viewerOutputFile.filename
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    URL.revokeObjectURL(href)
+    const result = await deliverFile(blob, viewerOutputFile.filename)
+    if (result.method !== 'cancelled') {
+      setSuccessMessage(result.method === 'saved' ? `Saved ${viewerOutputFile.filename}.` : `Download started for ${viewerOutputFile.filename}.`)
+    }
   }
 
   const renderResource = (resource: FileResource) => {

@@ -9,12 +9,13 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    JSON as JSONB,
     String,
     Text,
     UniqueConstraint,
+    Uuid as UUID,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -30,7 +31,11 @@ if TYPE_CHECKING:
         Output,
         ResourceGroup,
         ResourceGroupFile,
+        SourceSet,
+        SourceSetFile,
         Task,
+        TaskThread,
+        TaskThreadAttempt,
         Workflow,
         WorkflowEdge,
         WorkflowNode,
@@ -73,11 +78,17 @@ class User(Base):
     resource_groups: Mapped[list["ResourceGroup"]] = relationship(
         "ResourceGroup", back_populates="user", cascade="all, delete-orphan"
     )
+    source_sets: Mapped[list["SourceSet"]] = relationship(
+        "SourceSet", back_populates="user", cascade="all, delete-orphan"
+    )
     outputs: Mapped[list["Output"]] = relationship(
         "Output", back_populates="user", cascade="all, delete-orphan"
     )
     api_keys: Mapped[list["ApiKey"]] = relationship(
         "ApiKey", back_populates="user", cascade="all, delete-orphan"
+    )
+    task_threads: Mapped[list["TaskThread"]] = relationship(
+        "TaskThread", back_populates="user", cascade="all, delete-orphan"
     )
 
 
@@ -208,6 +219,9 @@ class File(Base):
     resource_group_link: Mapped[Optional["ResourceGroupFile"]] = relationship(
         "ResourceGroupFile", back_populates="file", uselist=False, cascade="all, delete-orphan"
     )
+    source_set_links: Mapped[list["SourceSetFile"]] = relationship(
+        "SourceSetFile", back_populates="file", cascade="all, delete-orphan"
+    )
 
 
 class ResourceGroup(Base):
@@ -267,6 +281,64 @@ class ResourceGroupFile(Base):
     file: Mapped["File"] = relationship("File", back_populates="resource_group_link")
 
 
+class SourceSet(Base):
+    """Reusable, ordered evidence bundle that can overlap collections."""
+
+    __tablename__ = "source_sets"
+    __table_args__ = (
+        UniqueConstraint("user_id", "name", name="uq_source_sets_user_name"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE")
+    )
+    name: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    user: Mapped["User"] = relationship("User", back_populates="source_sets")
+    file_links: Mapped[list["SourceSetFile"]] = relationship(
+        "SourceSetFile",
+        back_populates="source_set",
+        cascade="all, delete-orphan",
+        order_by="SourceSetFile.position",
+    )
+
+
+class SourceSetFile(Base):
+    """Ordered source membership for a reusable source set."""
+
+    __tablename__ = "source_set_files"
+    __table_args__ = (
+        UniqueConstraint("source_set_id", "file_id", name="uq_source_set_files_file"),
+        UniqueConstraint("source_set_id", "position", name="uq_source_set_files_position"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    source_set_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("source_sets.id", ondelete="CASCADE")
+    )
+    file_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("files.id", ondelete="CASCADE")
+    )
+    position: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    source_set: Mapped["SourceSet"] = relationship("SourceSet", back_populates="file_links")
+    file: Mapped["File"] = relationship("File", back_populates="source_set_links")
+
+
 class AgentType(Base):
     """Pre-defined agent types/templates."""
 
@@ -313,6 +385,9 @@ class Agent(Base):
     user: Mapped["User"] = relationship("User", back_populates="agents")
     executions: Mapped[list["Execution"]] = relationship(
         "Execution", back_populates="agent", cascade="all, delete-orphan"
+    )
+    task_threads: Mapped[list["TaskThread"]] = relationship(
+        "TaskThread", back_populates="agent"
     )
 
 
@@ -376,6 +451,83 @@ class Execution(Base):
     )
     artifacts: Mapped[list["Artifact"]] = relationship(
         "Artifact", back_populates="execution", cascade="all, delete-orphan"
+    )
+    thread_attempt: Mapped[Optional["TaskThreadAttempt"]] = relationship(
+        "TaskThreadAttempt",
+        back_populates="execution",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+
+class TaskThread(Base):
+    """Durable business task spanning one or more execution attempts."""
+
+    __tablename__ = "task_threads"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    agent_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("agents.id", ondelete="SET NULL"), nullable=True
+    )
+    title: Mapped[str] = mapped_column(String(255))
+    original_prompt: Mapped[str] = mapped_column(Text)
+    work_pack: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    resource_ids: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)
+    status: Mapped[str] = mapped_column(String(50), default="pending")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    user: Mapped["User"] = relationship("User", back_populates="task_threads")
+    agent: Mapped[Optional["Agent"]] = relationship(
+        "Agent", back_populates="task_threads"
+    )
+    attempts: Mapped[list["TaskThreadAttempt"]] = relationship(
+        "TaskThreadAttempt",
+        back_populates="thread",
+        cascade="all, delete-orphan",
+        order_by="TaskThreadAttempt.attempt_number",
+    )
+
+
+class TaskThreadAttempt(Base):
+    """Ordered link between a durable task and an immutable execution attempt."""
+
+    __tablename__ = "task_thread_attempts"
+    __table_args__ = (
+        UniqueConstraint("execution_id", name="uq_task_thread_attempt_execution"),
+        UniqueConstraint(
+            "thread_id", "attempt_number", name="uq_task_thread_attempt_number"
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    thread_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("task_threads.id", ondelete="CASCADE"), index=True
+    )
+    execution_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("executions.id", ondelete="CASCADE"), index=True
+    )
+    attempt_number: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    thread: Mapped["TaskThread"] = relationship(
+        "TaskThread", back_populates="attempts"
+    )
+    execution: Mapped["Execution"] = relationship(
+        "Execution", back_populates="thread_attempt"
     )
 
 

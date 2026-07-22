@@ -1,29 +1,28 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { PublicHeader } from '@/components/PublicHeader'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { ArrowRight, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail } from 'lucide-react'
+import { AuthShell } from '@/components/AuthShell'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
+  const location = useLocation()
+  const routeMessage = (location.state as { message?: string } | null)?.message
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
     setError(null)
     setIsLoading(true)
 
     try {
       const response = await fetch('/api/v1/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       })
 
       if (!response.ok) {
@@ -31,189 +30,102 @@ export default function LoginPage() {
         const detail = data?.detail
         if (Array.isArray(detail)) {
           const firstMessage = detail.find((item) => typeof item?.msg === 'string')?.msg
-          throw new Error(firstMessage || 'Login failed')
+          throw new Error(firstMessage || 'Check your email and password, then try again.')
         }
-        throw new Error(typeof detail === 'string' ? detail : 'Login failed')
+        throw new Error(
+          typeof detail === 'string' && !/incorrect email or password/i.test(detail)
+            ? detail
+            : 'Check your email and password, then try again.'
+        )
       }
 
       const data = await response.json()
-      // Store tokens in localStorage
       localStorage.setItem('access_token', data.access_token)
       localStorage.setItem('refresh_token', data.refresh_token)
-      
-      // Redirect to dashboard
       navigate('/dashboard')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'WorkerBee could not sign you in.')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex flex-col font-sans text-white">
-      {/* Immersive Background */}
-      <div className="immersive-bg">
-        <div className="data-grid-3d"></div>
-        <div className="wireframe-landscape"></div>
-        <div className="data-pathways"></div>
-        <div className="absolute inset-0 opacity-20 pointer-events-none">
-          <div className="absolute top-1/4 left-0 w-full h-[1px] bg-primary/30"></div>
-          <div className="absolute top-3/4 left-0 w-full h-[1px] bg-primary/30"></div>
-          <div className="absolute left-1/4 top-0 h-full w-[1px] bg-primary/30"></div>
-          <div className="absolute left-3/4 top-0 h-full w-[1px] bg-primary/30"></div>
+    <AuthShell
+      eyebrow="Welcome back"
+      title="Sign in to your workspace"
+      description="Pick up your tasks, files, deliverables, and review history."
+    >
+      {routeMessage && (
+        <div role="status" className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-sm text-emerald-800">
+          {routeMessage}
         </div>
-      </div>
-
-      {/* Navigation */}
-      <PublicHeader code="[AUTH-01]" />
-
-      {/* Main Content - Centered */}
-      <main className="flex-grow relative z-10 flex items-center justify-center p-6 pt-24">
-        <div className="w-full max-w-lg flex flex-col items-center gap-6">
-          {/* Login Form Container */}
-          <div className="w-full wireframe-box bg-bg-deep/90 backdrop-blur-xl p-10 space-y-8 floating-console">
-            {/* Icon Header */}
-            <div className="absolute -top-12 left-0 right-0 flex justify-center">
-              <div className="flex flex-col items-center">
-                <div className="w-20 h-20 wireframe-box bg-bg-deep/90 flex items-center justify-center mb-2 border-primary/30">
-                  <span className="material-symbols-outlined text-primary text-3xl crt-glow">shield_person</span>
-                </div>
-                <div className="h-12 w-[1px] bg-primary/30"></div>
-              </div>
-            </div>
-
-            {/* Title Section */}
-            <div className="text-center space-y-4 pt-4">
-              <div className="inline-flex items-center gap-3 px-4 py-1.5 border border-interface-border bg-white/5 font-mono text-[10px] uppercase tracking-[0.2em] text-accent-tan">
-                <span className="w-2 h-2 bg-primary animate-pulse inline-block"></span>
-                SYSTEM_ACCESS_PORTAL // TERMINAL: PRT-99
-              </div>
-              <h1 className="text-3xl font-mono font-extrabold tracking-tight text-white uppercase crt-glow leading-none">
-                Authorization Required
-              </h1>
-              <div className="flex items-center justify-center gap-4 opacity-30">
-                <div className="h-[1px] w-12 bg-accent-tan"></div>
-                <span className="font-mono text-[8px] uppercase tracking-[0.4em]">Identity Verification</span>
-                <div className="h-[1px] w-12 bg-accent-tan"></div>
-              </div>
-            </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
-                <p className="text-red-400 font-mono text-xs text-center">{error}</p>
-              </div>
-            )}
-
-            {/* Login Form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Email Field */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-end">
-                  <label className="block font-mono text-[10px] text-accent-tan uppercase tracking-[0.2em]">Email</label>
-                  <span className="font-mono text-[8px] text-accent-tan/30 uppercase">ID_FIELD_ALPHA</span>
-                </div>
-                <div className="relative group">
-                  <input 
-                    className="w-full bg-bg-deep/50 border border-interface-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-white font-mono text-sm px-5 py-4 outline-none transition-all placeholder:text-white/10"
-                    placeholder="name@company.com"
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-interface-border group-focus-within:text-primary/50 transition-colors">
-                    <span className="material-symbols-outlined text-lg">person</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Password Field */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-end">
-                  <label className="block font-mono text-[10px] text-accent-tan uppercase tracking-[0.2em]">Password</label>
-                  <span className="font-mono text-[8px] text-accent-tan/30 uppercase">KEY_FIELD_SECURE</span>
-                </div>
-                <div className="relative group">
-                  <input 
-                    className="w-full bg-bg-deep/50 border border-interface-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-white font-mono text-sm px-5 py-4 outline-none transition-all placeholder:text-white/10"
-                    placeholder="••••••••••••"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-interface-border group-focus-within:text-primary/50 transition-colors">
-                    <span className="material-symbols-outlined text-lg">key</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <div className="pt-4">
-                <button 
-                  className="w-full bg-primary text-bg-deep px-8 py-4 font-mono font-extrabold text-sm uppercase crt-button-glow flex items-center justify-center gap-3 hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  type="submit"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <span className="material-symbols-outlined text-xl animate-spin">sync</span>
-                      AUTHENTICATING
-                    </>
-                  ) : (
-                    <>
-                      Login <span className="material-symbols-outlined text-xl">login</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-
-            {/* Links Section */}
-            <div className="pt-6 border-t border-interface-border/50">
-              <div className="flex flex-col sm:flex-row justify-between w-full gap-6 text-[10px] font-mono uppercase tracking-widest">
-                <a className="text-accent-tan/70 hover:text-primary transition-colors flex items-center gap-2 group" href="#">
-                  <span className="material-symbols-outlined text-[14px] group-hover:rotate-12 transition-transform">help</span> Forgot Access Key?
-                </a>
-                <Link to="/register" className="text-accent-tan/70 hover:text-primary transition-colors flex items-center gap-2 group">
-                  <span className="material-symbols-outlined text-[14px] group-hover:scale-110 transition-transform">person_add</span> New User Registration
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer Status */}
-          <div className="w-full flex justify-between items-center font-mono text-[9px] text-accent-tan uppercase tracking-[0.3em] opacity-40">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[10px]">sensors</span>
-              Secure_Connection: Established
-            </div>
-            <div className="flex items-center gap-2">
-              Enc_Status: AES_256_ACTIVE
-              <span className="material-symbols-outlined text-[10px]">verified_user</span>
-            </div>
-          </div>
+      )}
+      {error && (
+        <div role="alert" className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">
+          {error}
         </div>
-      </main>
+      )}
 
-      {/* Footer */}
-      <footer className="relative z-10 py-6 px-6 lg:px-12 border-t border-white/5 font-mono text-xs bg-bg-deep/60 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-accent-tan/40 text-[9px] uppercase tracking-[0.2em]">
-          <div className="flex items-center gap-4">
-            <p>© 2024 WorkerBee Technologies Inc. [SYSTEM_INTERFACE_STABLE]</p>
-            <span className="h-3 w-[1px] bg-white/10 hidden md:block"></span>
-            <p className="hidden md:block">LOC: SUB-LEVEL_09</p>
-          </div>
-          <div className="flex gap-8">
-            <a className="hover:text-white transition-colors" href="#">Terms of Service</a>
-            <a className="hover:text-white transition-colors" href="#">Privacy Protocol</a>
-            <a className="hover:text-white transition-colors" href="#">Security Audit</a>
-          </div>
-        </div>
-      </footer>
-    </div>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <label htmlFor="login-email" className="block text-sm font-semibold text-stone-700">
+          Work email
+          <span className="relative mt-2 block">
+            <Mail size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+            <input
+              id="login-email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="name@company.com"
+              required
+              className="w-full rounded-xl border border-stone-300 bg-white py-3 pl-10 pr-3.5 text-sm font-normal text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+            />
+          </span>
+        </label>
+
+        <label htmlFor="login-password" className="block text-sm font-semibold text-stone-700">
+          Password
+          <span className="relative mt-2 block">
+            <LockKeyhole size={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+            <input
+              id="login-password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Enter your password"
+              required
+              className="w-full rounded-xl border border-stone-300 bg-white py-3 pl-10 pr-11 text-sm font-normal text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((visible) => !visible)}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+            </button>
+          </span>
+        </label>
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#25231f] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-55"
+        >
+          {isLoading ? <LoaderCircle size={17} className="animate-spin" /> : <ArrowRight size={17} />}
+          {isLoading ? 'Signing in…' : 'Sign in'}
+        </button>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-stone-600">
+        New to WorkerBee?{' '}
+        <Link to="/register" className="font-semibold text-stone-900 underline decoration-amber-400 decoration-2 underline-offset-4">
+          Create a workspace
+        </Link>
+      </p>
+    </AuthShell>
   )
 }

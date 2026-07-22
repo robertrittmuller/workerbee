@@ -17,9 +17,11 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = "WorkerBee"
-    app_version: str = "0.1.0"
+    app_version: str = "1.0.0"
     debug: bool = False
     environment: Literal["development", "staging", "production"] = "development"
+    workerbee_desktop_mode: bool = False
+    workerbee_desktop_session_secret: str = ""
 
     # API
     api_v1_prefix: str = "/api/v1"

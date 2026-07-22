@@ -1,0 +1,90 @@
+name: Desktop packages
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/desktop-packages.yml"
+      - "backend/**"
+      - "desktop/**"
+      - "frontend/**"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-14
+            command: dist:mac
+            artifact: workerbee-macos
+            files: |
+              desktop/release/*.dmg
+              desktop/release/*.zip
+          - name: Windows
+            os: windows-latest
+            command: dist:windows
+            artifact: workerbee-windows
+            files: desktop/release/*.exe
+          - name: Linux
+            os: ubuntu-24.04
+            command: dist:linux
+            artifact: workerbee-linux
+            files: desktop/release/*.AppImage
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            desktop/package-lock.json
+            frontend/package-lock.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install backend runtime dependencies
+        run: uv sync --project backend --extra desktop --extra dev --frozen
+
+      - name: Install web dependencies
+        run: npm ci --prefix frontend
+
+      - name: Install desktop dependencies
+        run: npm ci --prefix desktop
+
+      - name: Test backend contracts
+        working-directory: backend
+        run: uv run --extra desktop --extra dev pytest -q
+
+      - name: Test desktop contracts
+        run: npm --prefix desktop test
+
+      - name: Lint web application
+        run: npm --prefix frontend run lint
+
+      - name: Build native package
+        run: npm --prefix desktop run ${{ matrix.command }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+          retention-days: 14

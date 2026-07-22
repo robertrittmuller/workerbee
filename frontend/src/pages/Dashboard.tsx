@@ -15,6 +15,7 @@ import {
   outputsApi,
   ResourceGroup,
 } from '@/lib/api'
+import { deliverFile } from '@/lib/fileDelivery'
 
 type ActivityType = 'tool' | 'llm' | 'resource' | 'execution' | 'error' | 'system'
 
@@ -891,14 +892,10 @@ export default function Dashboard() {
     try {
       const response = await outputsApi.downloadRecentFile(output.id)
       const blob = response.data as Blob
-      const href = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
-      anchor.href = href
-      anchor.download = output.filename
-      document.body.appendChild(anchor)
-      anchor.click()
-      anchor.remove()
-      URL.revokeObjectURL(href)
+      const result = await deliverFile(blob, output.filename)
+      if (result.method !== 'cancelled') {
+        setSuccessMessage(result.method === 'saved' ? `Saved ${output.filename}.` : `Download started for ${output.filename}.`)
+      }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to download output file')
     } finally {
@@ -906,7 +903,7 @@ export default function Dashboard() {
     }
   }
 
-  const handleDownloadMarkdown = () => {
+  const handleDownloadMarkdown = async () => {
     if (!markdownViewerFile || !markdownViewerContent) {
       return
     }
@@ -914,14 +911,10 @@ export default function Dashboard() {
     const blob = new Blob([markdownViewerContent], {
       type: 'text/markdown;charset=utf-8',
     })
-    const href = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = href
-    anchor.download = markdownViewerFile.filename
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    URL.revokeObjectURL(href)
+    const result = await deliverFile(blob, markdownViewerFile.filename)
+    if (result.method !== 'cancelled') {
+      setSuccessMessage(result.method === 'saved' ? `Saved ${markdownViewerFile.filename}.` : `Download started for ${markdownViewerFile.filename}.`)
+    }
   }
 
   const isManualRefreshPending =

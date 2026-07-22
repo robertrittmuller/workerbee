@@ -1,14 +1,25 @@
 """WorkerBee FastAPI Application."""
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import close_db, init_db
-from app.routers import auth, users, workflows, agents, tasks, files, outputs, executions
+from app.routers import (
+    agents,
+    auth,
+    executions,
+    files,
+    outputs,
+    task_threads,
+    tasks,
+    users,
+    workflows,
+)
+from app.runtime_contract import desktop_runtime_contract
 
 
 @asynccontextmanager
@@ -49,9 +60,14 @@ app.include_router(tasks.router, prefix=f"{settings.api_v1_prefix}/tasks", tags=
 app.include_router(files.router, prefix=f"{settings.api_v1_prefix}/files", tags=["files"])
 app.include_router(outputs.router, prefix=f"{settings.api_v1_prefix}/outputs", tags=["outputs"])
 app.include_router(executions.router, prefix=f"{settings.api_v1_prefix}/executions", tags=["executions"])
+app.include_router(task_threads.router, prefix=f"{settings.api_v1_prefix}/task-threads", tags=["task-threads"])
 
 
 @app.get("/health")
 async def health_check() -> dict:
     """Health check endpoint."""
-    return {"status": "healthy", "version": settings.app_version}
+    return {
+        "status": "healthy",
+        "version": settings.app_version,
+        "desktop_runtime": desktop_runtime_contract(),
+    }

@@ -7,13 +7,18 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
 
-# Create async engine
-engine = create_async_engine(
-    settings.database_url,
-    pool_size=settings.database_pool_size,
-    max_overflow=settings.database_max_overflow,
-    echo=settings.debug,
-)
+engine_options: dict[str, object] = {"echo": settings.debug}
+
+# SQLite's async pool does not accept the PostgreSQL pool tuning options. Keeping
+# the conditional here lets the same application package run against a local,
+# zero-install SQLite file or the hosted PostgreSQL service.
+if not settings.database_url.startswith("sqlite"):
+    engine_options.update(
+        pool_size=settings.database_pool_size,
+        max_overflow=settings.database_max_overflow,
+    )
+
+engine = create_async_engine(settings.database_url, **engine_options)
 
 # Create async session factory
 async_session_maker = async_sessionmaker(
